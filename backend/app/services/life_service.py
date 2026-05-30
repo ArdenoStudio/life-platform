@@ -16,19 +16,24 @@ from app.adapters import (
     TransportAdapter,
     UtilitiesAdapter,
     VehicleAdapter,
+    WeatherRiskAdapter,
 )
 from app.core.config import Settings
 from app.db.models import (
     AreaScoreSnapshot,
+    DistrictProfileSnapshot,
     Domain,
     DomainSnapshot,
     IntegrationRun,
     LifeIndexSnapshot,
     PublicInsightSnapshot,
     RetailOfferSnapshot,
+    SourceDataRelease,
+    SourceImportArtifact,
     SourceRegistry,
     TariffSnapshot,
     TransportFareSnapshot,
+    WeatherRiskSnapshot,
     utc_now,
 )
 from app.schemas import (
@@ -41,33 +46,56 @@ from app.schemas import (
     CostCommandResponse,
     DomainHighlight,
     DomainSignal,
+    DistrictProfile,
     I18nResponse,
     InsightsResponse,
     LifeOverviewResponse,
     PipelineDomainStatus,
     PipelineResponse,
     PublicInsight,
+    PublicSourceReleaseResponse,
     RetailOffer,
     RetailOffersResponse,
     SearchResult,
+    SourceDataReleaseActionResponse,
+    SourceDataReleasesResponse,
+    SourceDataReleaseSummary,
+    SourceImportAuditResponse,
+    SourceImportArtifactsResponse,
+    SourceImportArtifactSummary,
+    SourceImportCheck,
+    SourceImportExecutionResponse,
+    SourceImportPlanResponse,
     SourceReference,
+    SourceValidationResponse,
     TransportOption,
     TransportResponse,
     UtilitiesResponse,
     UtilityItem,
+    WeatherRiskObservation,
+    WeatherRiskResponse,
 )
 from app.services.living_atlas_data import (
     AREA_BASE,
     DISTRICTS,
     DOMAIN_TRANSLATIONS,
+    FOOD_PROTEIN_BASKET,
     GAS_TARIFFS,
     I18N_LABELS,
+    OFFICIAL_IMPORT_CONTEXT_SOURCE_KEYS,
     RETAIL_OFFERS,
     SOURCE_DEFINITIONS,
     TRANSPORT_OPTIONS,
     UTILITY_TARIFFS,
+    DISTRICT_WEATHER_STATIONS,
+    _weather_risk_score,
+    _weather_severity,
+    district_profiles,
     grade_for,
+    source_governance,
     source_refs,
+    source_validation_report,
+    weather_risk_observations,
 )
 
 
@@ -121,18 +149,24 @@ COST_ITEM_LABELS = {
 
 AREA_COMPONENT_LABELS = {
     "si": {
+        "density": "ජනඝනත්ව පීඩනය",
         "food": "ආහාර බාස්කට් පීඩනය",
+        "household_energy": "ගෘහ බලශක්ති ආවරණය",
         "rent": "කුලී පීඩනය",
         "source": "මූලාශ්‍ර ආවරණය",
         "transport": "ප්‍රවාහන පීඩනය",
         "utilities": "උපයෝගිතා පීඩනය",
+        "weather": "කාලගුණ හා අවදානම් පීඩනය",
     },
     "ta": {
+        "density": "மக்கள் அடர்த்தி அழுத்தம்",
         "food": "உணவு கூடை அழுத்தம்",
+        "household_energy": "குடும்ப ஆற்றல் கவரேஜ்",
         "rent": "வாடகை அழுத்தம்",
         "source": "மூலக் கவரேஜ்",
         "transport": "போக்குவரத்து அழுத்தம்",
         "utilities": "பயன்பாட்டு அழுத்தம்",
+        "weather": "வானிலை மற்றும் ஆபத்து அழுத்தம்",
     },
 }
 
@@ -188,6 +222,7 @@ DOMAIN_SEARCH_HINTS = {
     "gas": {"gas", "laugfs", "litro", "lpg"},
     "transport": {"bus", "commute", "fare", "rail", "train", "transport"},
     "retail": {"offer", "offers", "retail", "supermarket"},
+    "weather": {"dmc", "flood", "rain", "risk", "river", "weather"},
 }
 
 
@@ -216,6 +251,22 @@ def atlas_narrative(locale: str, district: str, score: float, profile: str) -> s
     return f"{district} scores {score}/100 for the {profile} profile, with rent, food, transport, utilities, and source coverage shown separately."
 
 
+def clamp_score(value: float, *, lower: float = 35, upper: float = 92) -> float:
+    return round(max(lower, min(upper, value)), 1)
+
+
+def parse_source_datetime(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, tz=timezone.utc)
+    if isinstance(value, str):
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return None
+
+
 def query_tokens(query: str) -> set[str]:
     return {part for part in query.replace("/", " ").replace("-", " ").lower().split() if part}
 
@@ -228,6 +279,21 @@ def infer_search_domains(query: str) -> set[str]:
         if tokens.intersection(hints) or any(" " in hint and hint in normalized for hint in hints):
             matches.add(domain)
     return matches
+
+
+def food_protein_basket_signal() -> dict[str, Any]:
+    weekly_lkr = sum(item["price_lkr"] * item["weekly_quantity"] for item in FOOD_PROTEIN_BASKET)
+    protein_g = sum(item["protein_g_per_unit"] * item["weekly_quantity"] for item in FOOD_PROTEIN_BASKET)
+    serving_count = max(round(protein_g / 25), 1)
+    source_keys = sorted({source_key for item in FOOD_PROTEIN_BASKET for source_key in item["source_keys"]})
+    return {
+        "weekly_lkr": round(weekly_lkr, 0),
+        "protein_g": round(protein_g, 0),
+        "serving_count": serving_count,
+        "cost_per_serving_lkr": round(weekly_lkr / serving_count, 0),
+        "source_keys": source_keys,
+        "items": FOOD_PROTEIN_BASKET,
+    }
 
 
 class LifeService:
@@ -245,6 +311,7 @@ class LifeService:
             TransportAdapter(settings),
             RetailAdapter(settings),
             IndicesAdapter(settings),
+            WeatherRiskAdapter(settings),
             AreaScoreAdapter(settings),
         ]
 
@@ -292,6 +359,9 @@ class LifeService:
             return adapter.degraded_fixture(str(exc))
 
     async def ensure_domains(self, db: Session) -> None:
+        self.ensure_domains_sync(db)
+
+    def ensure_domains_sync(self, db: Session) -> None:
         changed = False
         for adapter in self.adapters:
             existing = db.get(Domain, adapter.key)
@@ -321,6 +391,7 @@ class LifeService:
         changed = False
         now = utc_now()
         for row in SOURCE_DEFINITIONS:
+            governance = source_governance(row)
             existing = db.get(SourceRegistry, row["key"])
             if existing is None:
                 db.add(
@@ -332,6 +403,12 @@ class LifeService:
                         url=row["url"],
                         confidence=row["confidence"],
                         freshness_note=row["freshness_note"],
+                        owner=governance["owner"],
+                        collection_method=governance["collection_method"],
+                        license_status=governance["license_status"],
+                        review_status=governance["review_status"],
+                        refresh_cadence=governance["refresh_cadence"],
+                        governance_note=governance["governance_note"],
                         status="healthy",
                         locale_labels=row.get("labels", {}),
                         last_checked_at=now,
@@ -345,6 +422,12 @@ class LifeService:
                 existing.url = row["url"]
                 existing.confidence = row["confidence"]
                 existing.freshness_note = row["freshness_note"]
+                existing.owner = governance["owner"]
+                existing.collection_method = governance["collection_method"]
+                existing.license_status = governance["license_status"]
+                existing.review_status = governance["review_status"]
+                existing.refresh_cadence = governance["refresh_cadence"]
+                existing.governance_note = governance["governance_note"]
                 existing.locale_labels = row.get("labels", {})
                 existing.updated_at = now
                 changed = True
@@ -416,8 +499,14 @@ class LifeService:
         fuel_monthly = petrol_92 * factors["fuel_litres"]
         housing_monthly = rent_base * factors["housing"]
         vehicle_monthly = vehicle_monthly * factors["vehicle"]
-        utilities_monthly = factors["utilities"]
-        public_transport_monthly = 9000 if profile != "commuter" else 16500
+        utility_seed_total = sum(item["amount_lkr"] for item in UTILITY_TARIFFS if item["key"] in {"electricity-family", "water-domestic"})
+        utility_profile_factor = 1.0 if profile == "family" else 0.68 if profile == "single" else 0.78
+        utilities_monthly = max(utility_seed_total * utility_profile_factor, factors["utilities"] * 0.72)
+        commuter_bus_fare = next(
+            (item["fare_lkr"] for item in TRANSPORT_OPTIONS if item["mode"] == "bus" and item["from_area"] == "Gampaha" and item["to_area"] == "Colombo"),
+            220,
+        )
+        public_transport_monthly = commuter_bus_fare * (44 if profile == "commuter" else 28 if profile == "single" else 40)
 
         breakdown = [
             AffordabilityBreakdownItem(
@@ -450,23 +539,23 @@ class LifeService:
                 monthly_lkr=round(vehicle_monthly, 0),
                 confidence="low",
                 source_domains=["vehicle"],
-                note="Planning reserve derived from vehicle market average, not a loan quote.",
+                note="Planning reserve derived from vehicle market average with CBSL/customs import-cost context; not a loan or tax quote.",
             ),
             AffordabilityBreakdownItem(
                 key="utilities",
                 label="Utilities and communications",
                 monthly_lkr=round(utilities_monthly, 0),
-                confidence="low",
-                source_domains=["official-roadmap"],
-                note="Static v1 assumption until PUCSL, water, gas, and telecom feeds are added.",
+                confidence="medium",
+                source_domains=["utilities"],
+                note="Uses source-labelled PUCSL electricity and NWSDB water planning rows; telecom remains outside the v1 model.",
             ),
             AffordabilityBreakdownItem(
                 key="transport",
                 label="Public transport buffer",
                 monthly_lkr=round(public_transport_monthly, 0),
-                confidence="low",
-                source_domains=["official-roadmap"],
-                note="Static v1 assumption until NTC and railway tariff snapshots are added.",
+                confidence="medium",
+                source_domains=["transport"],
+                note="Uses NTC bus-fare planning rows for commute buffering; rail and route freshness remain staged.",
             ),
         ]
         total = round(sum(item.monthly_lkr for item in breakdown), 0)
@@ -481,7 +570,7 @@ class LifeService:
             assumptions=[
                 "This is a planning index, not financial advice or a formal cost-of-living statistic.",
                 "Food and fuel use upstream price signals; housing and vehicle costs are conservative v1 proxies.",
-                "Utilities, gas, transport, and import/tax feeds are staged after the core platform.",
+                "Utility and transport rows are source-labelled planning inputs; direct tariff/import extraction still requires operator review.",
             ],
         )
         db.add(
@@ -518,6 +607,21 @@ class LifeService:
             return []
         hinted_domains = infer_search_domains(q)
         results: list[SearchResult] = []
+        tokens = query_tokens(q)
+        if tokens.intersection({"protein", "nutrition", "meal", "meals", "fish", "egg", "eggs", "dhal", "chicken"}):
+            protein = food_protein_basket_signal()
+            results.append(
+                SearchResult(
+                    domain="food",
+                    label="FoodLK: Protein basket",
+                    description=(
+                        f"LKR {protein['weekly_lkr']:,.0f}/week for about {protein['serving_count']} "
+                        f"protein servings from reviewed food, nutrition, and fisheries context."
+                    ),
+                    href="/?page=intelligence",
+                    score=118,
+                )
+            )
         for domain in domains:
             domain_is_hinted = domain.key in hinted_domains
             haystacks = [domain.label, domain.category, domain.summary, *(h.label for h in domain.highlights)]
@@ -646,6 +750,7 @@ class LifeService:
         health_monthly = 12500 if profile == "single" else 28500 if profile == "family" else 17000
         education_monthly = 32000 if profile == "family" else 5500
         household_goods = 14500 if profile == "family" else 7800
+        protein = food_protein_basket_signal()
 
         extra_items = [
             CostCommandItem(
@@ -696,8 +801,8 @@ class LifeService:
                 monthly_lkr=item.monthly_lkr,
                 weekly_lkr=round(item.monthly_lkr / 4.33, 0),
                 confidence=item.confidence,
-                source_type="platform" if item.source_domains and item.source_domains[0] in {"food", "fuel", "property", "vehicle"} else "derived",
-                source_keys=item.source_domains,
+                source_type=self._cost_item_source_type(item.key),
+                source_keys=self._cost_item_source_keys(item.key, item.source_domains),
                 note=item.note,
             )
             for item in affordability.breakdown
@@ -708,8 +813,7 @@ class LifeService:
             "food": "foodlk-platform",
             "fuel": "cpc-fuel",
             "property": "dcs-hies",
-            "vehicle": "cpc-fuel",
-            "official-roadmap": "dcs-hies",
+            "vehicle": "autolens-platform",
             "utilities": "pucsl-electricity",
             "gas": "litro-lpg",
             "transport": "ntc-bus-fares",
@@ -739,6 +843,12 @@ class LifeService:
             items=items,
             savings_moves=[
                 DomainHighlight(label="Swap retail vs market", value="Compare supermarket quotes with FoodLK market quotes before basket buys.", severity="good", href="/?page=intelligence"),
+                DomainHighlight(
+                    label="Protein basket check",
+                    value=f"LKR {protein['weekly_lkr']:,.0f}/week for about {protein['serving_count']} source-labelled protein servings.",
+                    severity="watch",
+                    href="/?page=intelligence",
+                ),
                 DomainHighlight(label="Commute mode check", value="Compare NTC bus fares with private fuel-only trip costs.", severity="watch", href="/?page=atlas"),
                 DomainHighlight(label="Gas cadence", value="Track LPG cylinder replacement as a monthly reserve, not a surprise expense.", severity="neutral", href="/?page=cost"),
             ],
@@ -746,9 +856,27 @@ class LifeService:
             assumptions=[
                 "This is a public planning estimate, not a personal finance account.",
                 "All filters are query-driven and shareable; no user profile is stored.",
-                "Official, retail, platform, and derived inputs are labelled separately.",
+                "Official, retail, platform, and derived inputs are labelled separately; tariff/import parsers stay behind operator review.",
             ],
         )
+
+    def _cost_item_source_type(self, key: str) -> str:
+        if key in {"fuel", "gas", "transport", "utilities"}:
+            return "official"
+        if key in {"food", "property", "vehicle"}:
+            return "platform"
+        return "derived"
+
+    def _cost_item_source_keys(self, key: str, fallback: list[str]) -> list[str]:
+        source_keys = {
+            "food": ["foodlk-platform", "cbsl-price-report", "harti-daily"],
+            "fuel": ["octane-platform", "cpc-fuel"],
+            "property": ["propertylk-platform", "dcs-hies"],
+            "vehicle": ["autolens-platform", *OFFICIAL_IMPORT_CONTEXT_SOURCE_KEYS],
+            "utilities": ["pucsl-electricity", "nwsdb-water"],
+            "transport": ["ntc-bus-fares", "cpc-fuel"],
+        }
+        return source_keys.get(key, fallback)
 
     def utilities(self, db: Session, *, district: str = "Sri Lanka") -> UtilitiesResponse:
         self.ensure_sources(db)
@@ -849,59 +977,252 @@ class LifeService:
             sources=self.public_sources("retail"),
         )
 
-    def area_score(self, db: Session, *, district: str = "Sri Lanka", profile: str = "family", locale: str = "en") -> AreaScoreResponse:
+    def _district_profile_from_snapshot(self, row: DistrictProfileSnapshot) -> DistrictProfile:
+        density = round(row.population / row.area_sqkm, 1)
+        return DistrictProfile(
+            key=row.district,
+            region_id=row.region_id,
+            province=row.province,
+            population=row.population,
+            households=row.households,
+            area_sqkm=row.area_sqkm,
+            density_per_sqkm=density,
+            center_lat=row.center_lat,
+            center_lng=row.center_lng,
+            cooking_gas_share=row.cooking_gas_share,
+            elderly_share=row.elderly_share,
+            confidence=row.confidence,
+            source_keys=row.source_keys,
+            note=f"Promoted from direct source-import artifact {row.source_artifact_id or 'unlinked'} observed at {row.observed_at.isoformat()}.",
+        )
+
+    def _complete_source_release_filters(self) -> tuple[Any, ...]:
+        required_weather_stations = {station_name for station_name, _coverage in DISTRICT_WEATHER_STATIONS.values()}
+        return (
+            SourceDataRelease.district_profile_snapshot_count >= len(DISTRICTS),
+            SourceDataRelease.weather_risk_snapshot_count >= len(required_weather_stations),
+            SourceDataRelease.area_score_snapshot_count >= len(DISTRICTS) * len(PROFILE_FACTORS),
+        )
+
+    def _active_source_data_release(self, db: Session) -> SourceDataRelease | None:
+        return db.scalar(
+            select(SourceDataRelease)
+            .where(
+                SourceDataRelease.status == "promoted",
+                *self._complete_source_release_filters(),
+            )
+            .order_by(desc(SourceDataRelease.observed_at), desc(SourceDataRelease.id))
+            .limit(1)
+        )
+
+    def _latest_promoted_release_observed_at(self, db: Session) -> datetime | None:
+        active_release = self._active_source_data_release(db)
+        return active_release.observed_at if active_release else None
+
+    def _district_profiles(self, db: Session, *, source_observed_at: datetime | None = None) -> list[DistrictProfile]:
+        latest_at = source_observed_at or self._latest_promoted_release_observed_at(db)
+        if latest_at is None:
+            return district_profiles()
+        latest_at = db.scalar(
+            select(DistrictProfileSnapshot.observed_at)
+            .where(DistrictProfileSnapshot.observed_at == latest_at)
+            .order_by(desc(DistrictProfileSnapshot.observed_at), desc(DistrictProfileSnapshot.id))
+            .limit(1)
+        )
+        if latest_at is None:
+            return district_profiles()
+        rows = db.scalars(
+            select(DistrictProfileSnapshot)
+            .where(DistrictProfileSnapshot.observed_at == latest_at)
+            .order_by(DistrictProfileSnapshot.id)
+        ).all()
+        by_district = {row.district: row for row in rows}
+        if not set(DISTRICTS).issubset(by_district):
+            return district_profiles()
+        return [self._district_profile_from_snapshot(by_district[district]) for district in DISTRICTS]
+
+    def _district_profile_for(self, db: Session, district: str, *, source_observed_at: datetime | None = None) -> DistrictProfile:
+        normalized = " ".join((district or "Sri Lanka").replace("-", " ").split()).lower()
+        profiles = self._district_profiles(db, source_observed_at=source_observed_at)
+        for profile in profiles:
+            if profile.key.lower() == normalized:
+                return profile
+        return profiles[0]
+
+    def _weather_observation_from_snapshot(self, district: str, row: WeatherRiskSnapshot, coverage: str) -> WeatherRiskObservation:
+        rainfall = float(row.rainfall_mm or 0)
+        humidity = float(row.humidity_percent or 0)
+        score = _weather_risk_score(rainfall, humidity, coverage)
+        severity = _weather_severity(rainfall, humidity, score)
+        if coverage == "national":
+            note = "National watch uses the highest-pressure promoted station row until district-level alert ingestion is automated."
+        elif coverage == "proxy":
+            note = f"{district} uses nearest promoted station proxy {row.station_name}; treat as planning context, not a local warning."
+        else:
+            note = f"{district} uses the directly mapped {row.station_name} station from the promoted source-import snapshot."
+        return WeatherRiskObservation(
+            district=district,
+            station_id=row.station_id or row.station_name,
+            station_name=row.station_name,
+            observed_at=row.source_observed_at or row.observed_at,
+            rainfall_mm=rainfall,
+            temperature_c=float(row.temperature_c or 0),
+            humidity_percent=humidity,
+            risk_score=score,
+            severity=severity,
+            coverage=coverage,
+            confidence="medium" if coverage == "direct" else "low",
+            source_keys=row.source_keys or WEATHER_RISK_SOURCE_KEYS,
+            note=note,
+        )
+
+    def _weather_risk_observations(self, db: Session, *, source_observed_at: datetime | None = None) -> list[WeatherRiskObservation]:
+        latest_at = source_observed_at or self._latest_promoted_release_observed_at(db)
+        if latest_at is None:
+            return weather_risk_observations()
+        latest_at = db.scalar(
+            select(WeatherRiskSnapshot.observed_at)
+            .where(WeatherRiskSnapshot.record_type == "weather_station")
+            .where(WeatherRiskSnapshot.observed_at == latest_at)
+            .order_by(desc(WeatherRiskSnapshot.observed_at), desc(WeatherRiskSnapshot.id))
+            .limit(1)
+        )
+        if latest_at is None:
+            return weather_risk_observations()
+        rows = db.scalars(
+            select(WeatherRiskSnapshot)
+            .where(WeatherRiskSnapshot.record_type == "weather_station", WeatherRiskSnapshot.observed_at == latest_at)
+            .order_by(WeatherRiskSnapshot.id)
+        ).all()
+        by_station = {row.station_name: row for row in rows}
+        required_stations = {station_name for station_name, _coverage in DISTRICT_WEATHER_STATIONS.values()}
+        if not required_stations.issubset(by_station):
+            return weather_risk_observations()
+        return [
+            self._weather_observation_from_snapshot(district, by_station[station_name], coverage)
+            for district, (station_name, coverage) in DISTRICT_WEATHER_STATIONS.items()
+        ]
+
+    def _weather_risk_for(self, db: Session, district: str, *, source_observed_at: datetime | None = None) -> WeatherRiskObservation:
+        normalized = " ".join((district or "Sri Lanka").replace("-", " ").split()).lower()
+        observations = self._weather_risk_observations(db, source_observed_at=source_observed_at)
+        for item in observations:
+            if item.district.lower() == normalized:
+                return item
+        return observations[0]
+
+    def weather_risk(self, db: Session, *, district: str = "Sri Lanka") -> WeatherRiskResponse:
+        self.ensure_sources(db)
+        observations = self._weather_risk_observations(db)
+        selected = self._weather_risk_for(db, district)
+        return WeatherRiskResponse(
+            generated_at=utc_now(),
+            district=selected.district,
+            selected=selected,
+            observations=observations,
+            methodology=[
+                "Weather rows are reviewed seed observations from the public 3-hour Met Department extract, with DMC and river sources kept visible for risk context.",
+                "Direct station districts use their mapped station; other districts are marked as proxy until district-level weather and river ingestion is automated.",
+                "This is a planning signal, not an emergency alert. Use official DMC, Department of Meteorology, and Irrigation Department channels for warnings.",
+            ],
+            sources=self.public_sources("weather"),
+        )
+
+    def area_score(
+        self,
+        db: Session,
+        *,
+        district: str = "Sri Lanka",
+        profile: str = "family",
+        locale: str = "en",
+        persist: bool = True,
+        source_observed_at: datetime | None = None,
+    ) -> AreaScoreResponse:
         self.ensure_sources(db)
         locale = normalize_locale(locale)
-        base = AREA_BASE.get(district, AREA_BASE["Sri Lanka"])
+        district_profile = self._district_profile_for(db, district, source_observed_at=source_observed_at)
+        resolved_district = district_profile.key
+        weather = self._weather_risk_for(db, resolved_district, source_observed_at=source_observed_at)
+        density = district_profile.density_per_sqkm
+        if resolved_district == "Sri Lanka":
+            base = dict(AREA_BASE.get(district, AREA_BASE["Sri Lanka"]))
+        else:
+            rent_score = clamp_score(88 - (density / 80), lower=38, upper=82)
+            food_score = clamp_score(77 - (district_profile.elderly_share * 38) - (district_profile.cooking_gas_share * 5), lower=56, upper=78)
+            transport_score = clamp_score(52 + min(density / 130, 22), lower=48, upper=78)
+            utilities_score = clamp_score(50 + (district_profile.cooking_gas_share * 30), lower=48, upper=82)
+            density_score = clamp_score(88 - (density / 95), lower=42, upper=88)
+            source_score = 92
+            base = {
+                "density": density_score,
+                "food": food_score,
+                "rent": rent_score,
+                "source": source_score,
+                "transport": transport_score,
+                "utilities": utilities_score,
+            }
+        base.setdefault("density", clamp_score(88 - (density / 95), lower=42, upper=88))
+        base["weather"] = clamp_score(92 - (weather.risk_score * 0.55), lower=42, upper=88)
         if profile not in PROFILE_FACTORS:
             profile = "family"
-        weights = {"rent": 0.3, "food": 0.24, "transport": 0.18, "utilities": 0.14, "source": 0.14}
+        weights = {"rent": 0.24, "food": 0.2, "transport": 0.16, "utilities": 0.12, "density": 0.09, "weather": 0.08, "source": 0.11}
         if profile == "commuter":
-            weights = {"rent": 0.24, "food": 0.2, "transport": 0.28, "utilities": 0.12, "source": 0.16}
+            weights = {"rent": 0.2, "food": 0.17, "transport": 0.26, "utilities": 0.09, "density": 0.09, "weather": 0.08, "source": 0.11}
+        source_keys = district_profile.source_keys
         components = [
-            AreaScoreComponent(key="rent", label=localized_area_label(locale, "rent", "Rent pressure"), score=base["rent"], value=f"{base['rent']}/100", weight=weights["rent"], confidence="low"),
-            AreaScoreComponent(key="food", label=localized_area_label(locale, "food", "Food basket pressure"), score=base["food"], value=f"{base['food']}/100", weight=weights["food"], confidence="medium"),
-            AreaScoreComponent(key="transport", label=localized_area_label(locale, "transport", "Transport pressure"), score=base["transport"], value=f"{base['transport']}/100", weight=weights["transport"], confidence="medium"),
-            AreaScoreComponent(key="utilities", label=localized_area_label(locale, "utilities", "Utility pressure"), score=base["utilities"], value=f"{base['utilities']}/100", weight=weights["utilities"], confidence="low"),
-            AreaScoreComponent(key="source", label=localized_area_label(locale, "source", "Source coverage"), score=base["source"], value=f"{base['source']}/100", weight=weights["source"], confidence="medium"),
+            AreaScoreComponent(key="rent", label=localized_area_label(locale, "rent", "Rent pressure"), score=base["rent"], value=f"{base['rent']}/100", weight=weights["rent"], confidence="medium", source_keys=source_keys + ["property"], note="Density is used as a sourced rent-pressure proxy until district rental yields are normalized."),
+            AreaScoreComponent(key="food", label=localized_area_label(locale, "food", "Food basket pressure"), score=base["food"], value=f"{base['food']}/100", weight=weights["food"], confidence="medium", source_keys=source_keys + ["foodlk-platform"], note="Food pressure blends household structure with existing food price signals."),
+            AreaScoreComponent(key="transport", label=localized_area_label(locale, "transport", "Transport pressure"), score=base["transport"], value=f"{base['transport']}/100", weight=weights["transport"], confidence="medium", source_keys=source_keys + ["ntc-bus-fares"], note="Dense districts receive stronger public-transport access but also stronger commute pressure."),
+            AreaScoreComponent(key="utilities", label=localized_area_label(locale, "utilities", "Utility pressure"), score=base["utilities"], value=f"{base['utilities']}/100", weight=weights["utilities"], confidence="medium", source_keys=source_keys + ["pucsl-electricity", "nwsdb-water"], note="Cooking gas share is used as a household-energy access proxy."),
+            AreaScoreComponent(key="density", label=localized_area_label(locale, "density", "Density pressure"), score=base["density"], value=f"{district_profile.density_per_sqkm:,.0f}/sqkm", weight=weights["density"], confidence="high", source_keys=source_keys, note="Population divided by district area from sourced census and admin-region data."),
+            AreaScoreComponent(key="weather", label=localized_area_label(locale, "weather", "Weather and risk pressure"), score=base["weather"], value=f"{weather.severity} / {weather.rainfall_mm:g}mm rain", weight=weights["weather"], confidence=weather.confidence, source_keys=weather.source_keys, note=weather.note),
+            AreaScoreComponent(key="source", label=localized_area_label(locale, "source", "Source coverage"), score=base["source"], value=f"{base['source']}/100", weight=weights["source"], confidence="high", source_keys=source_keys, note="District profile has official census facts plus reviewed public extracts."),
         ]
         score = round(sum(component.score * component.weight for component in components), 1)
         response = AreaScoreResponse(
             generated_at=utc_now(),
-            district=district,
+            district=resolved_district,
             profile=profile,
             score=score,
             grade=grade_for(score),
             confidence="medium",
             components=components,
-            sources=self.public_sources("areas") + self.public_sources("indices"),
+            district_profile=district_profile,
+            sources=self.public_sources("areas") + self.public_sources("indices") + self.public_sources("weather"),
         )
-        db.add(
-            AreaScoreSnapshot(
-                district=district,
-                profile=profile,
-                score=score,
-                grade=response.grade,
-                confidence=response.confidence,
-                components=[component.model_dump(mode="json") for component in components],
-                observed_at=response.generated_at,
+        if persist:
+            db.add(
+                AreaScoreSnapshot(
+                    district=resolved_district,
+                    profile=profile,
+                    score=score,
+                    grade=response.grade,
+                    confidence=response.confidence,
+                    components=[component.model_dump(mode="json") for component in components],
+                    observed_at=response.generated_at,
+                )
             )
-        )
-        db.commit()
+            db.commit()
         return response
 
     def atlas(self, db: Session, *, district: str = "Sri Lanka", profile: str = "family", locale: str = "en") -> AtlasResponse:
         locale = normalize_locale(locale)
         selected = self.area_score(db, district=district, profile=profile, locale=locale)
-        district_scores = [self.area_score(db, district=item, profile=profile, locale=locale) for item in DISTRICTS]
+        district_scores = [self.area_score(db, district=item, profile=profile, locale=locale, persist=False) for item in DISTRICTS]
+        profiles = self._district_profiles(db)
+        profile_map = {item.key: item for item in profiles}
         heatmap = [
             {
                 "district": item.district,
+                "province": profile_map[item.district].province if item.district in profile_map else "Unknown",
                 "score": item.score,
                 "grade": item.grade,
+                "population": profile_map[item.district].population if item.district in profile_map else 0,
+                "density_per_sqkm": profile_map[item.district].density_per_sqkm if item.district in profile_map else 0,
                 "rent": next(component.score for component in item.components if component.key == "rent"),
                 "food": next(component.score for component in item.components if component.key == "food"),
                 "transport": next(component.score for component in item.components if component.key == "transport"),
+                "weather": next(component.score for component in item.components if component.key == "weather"),
             }
             for item in district_scores
         ]
@@ -915,7 +1236,14 @@ class LifeService:
             selected=selected,
             district_scores=district_scores,
             heatmap=heatmap,
-            narrative=atlas_narrative(locale, district, selected.score, profile),
+            narrative=atlas_narrative(locale, selected.district, selected.score, profile),
+            selected_profile=selected.district_profile,
+            district_profiles=profiles,
+            methodology=[
+                "District facts use Census 2024 population and household extracts plus public Lanka Data administrative region metadata.",
+                "Scores are planning signals, not official rankings; density, household energy, transport, weather/risk, and source coverage are labelled separately.",
+                "Missing or unreviewed source data lowers confidence instead of being treated as official truth.",
+            ],
             sources=self.public_sources(),
         )
 
@@ -923,6 +1251,8 @@ class LifeService:
         domains = await self.get_domain_signals(db)
         now = utc_now()
         source_map = {source.key: source for source in self.public_sources()}
+        highest_weather = max(self._weather_risk_observations(db), key=lambda item: item.risk_score)
+        protein = food_protein_basket_signal()
         rows = [
             PublicInsight(
                 id="cost-non-food-pressure",
@@ -945,6 +1275,20 @@ class LifeService:
                 observed_at=now,
             ),
             PublicInsight(
+                id="food-protein-affordability",
+                domain="food",
+                title="Protein affordability needs a basket view",
+                message=(
+                    f"The reviewed protein basket is about LKR {protein['weekly_lkr']:,.0f}/week, "
+                    f"or roughly LKR {protein['cost_per_serving_lkr']:,.0f} per 25g protein serving, "
+                    "using food-price, nutrition, and fisheries context with visible confidence."
+                ),
+                severity="watch",
+                confidence="medium",
+                source_keys=protein["source_keys"],
+                observed_at=now,
+            ),
+            PublicInsight(
                 id="source-degraded-visible",
                 domain="sources",
                 title="Source confidence is part of the product",
@@ -952,6 +1296,16 @@ class LifeService:
                 severity="good",
                 confidence="high",
                 source_keys=list(source_map)[:4],
+                observed_at=now,
+            ),
+            PublicInsight(
+                id="weather-risk-watch",
+                domain="weather",
+                title="Weather risk is now a public planning input",
+                message=f"{highest_weather.district} has the highest reviewed weather pressure in the seed model, with {highest_weather.rainfall_mm:g}mm rain at {highest_weather.station_name}.",
+                severity=highest_weather.severity,
+                confidence=highest_weather.confidence,
+                source_keys=highest_weather.source_keys,
                 observed_at=now,
             ),
         ]
@@ -1008,6 +1362,608 @@ class LifeService:
 
     def public_sources(self, domain: str | None = None) -> list[SourceReference]:
         return source_refs(domain)
+
+    def source_validation(self, db: Session) -> SourceValidationResponse:
+        self.ensure_sources(db)
+        return source_validation_report()
+
+    def public_source_release(self, db: Session) -> PublicSourceReleaseResponse:
+        release = self._active_source_data_release(db)
+        if release is None:
+            return PublicSourceReleaseResponse(
+                generated_at=utc_now(),
+                status="seed_fallback",
+                note="Atlas and weather responses are using reviewed seed data because no complete promoted source release is active.",
+            )
+        return PublicSourceReleaseResponse(
+            generated_at=utc_now(),
+            status="promoted",
+            active_release_key=release.release_key,
+            observed_at=release.observed_at,
+            source_keys=release.source_keys,
+            district_profile_snapshot_count=release.district_profile_snapshot_count,
+            weather_risk_snapshot_count=release.weather_risk_snapshot_count,
+            area_score_snapshot_count=release.area_score_snapshot_count,
+            note="Atlas and weather responses are using the latest complete promoted source release.",
+        )
+
+    def source_import_audit(self, db: Session, *, persist: bool = True) -> SourceImportAuditResponse:
+        from app.services.source_imports import source_import_audit_report
+
+        self.ensure_domains_sync(db)
+        self.ensure_sources(db)
+        audit = source_import_audit_report()
+        if persist:
+            now = utc_now()
+            for importer in audit.importers:
+                db.add(
+                    IntegrationRun(
+                        domain_key=importer.domain_key,
+                        status="failed" if importer.status == "fail" else "completed",
+                        started_at=audit.generated_at,
+                        finished_at=now,
+                        error_message=importer.action if importer.status == "fail" else None,
+                        payload_summary={
+                            "importer_key": importer.key,
+                            "audit_status": importer.status,
+                            "accepted_for_scoring": importer.accepted_for_scoring,
+                            "rows_checked": importer.rows_checked,
+                            "checks": [
+                                {
+                                    "key": check.key,
+                                    "status": check.status,
+                                    "message": check.message,
+                                }
+                                for check in importer.checks
+                            ],
+                        },
+                    )
+                )
+            db.commit()
+        return audit
+
+    def source_import_plan(self, db: Session, *, persist: bool = True) -> SourceImportPlanResponse:
+        from app.services.source_imports import source_import_plan_report
+
+        self.ensure_domains_sync(db)
+        self.ensure_sources(db)
+        plan = source_import_plan_report()
+        if persist:
+            now = utc_now()
+            for manifest in plan.manifests:
+                db.add(
+                    IntegrationRun(
+                        domain_key=manifest.domain_key,
+                        status="failed" if manifest.status == "fail" else "completed",
+                        started_at=plan.generated_at,
+                        finished_at=now,
+                        error_message=manifest.next_action if manifest.status == "fail" else None,
+                        payload_summary={
+                            "manifest_key": manifest.key,
+                            "readiness_status": manifest.status,
+                            "promotion_status": manifest.promotion_status,
+                            "accepted_for_direct_run": manifest.accepted_for_direct_run,
+                            "endpoint_statuses": [
+                                {
+                                    "key": endpoint.key,
+                                    "status": endpoint.status,
+                                    "source_key": endpoint.source_key,
+                                }
+                                for endpoint in manifest.endpoints
+                            ],
+                            "checks": [
+                                {
+                                    "key": check.key,
+                                    "status": check.status,
+                                    "message": check.message,
+                                }
+                                for check in manifest.checks
+                            ],
+                        },
+                    )
+                )
+            db.commit()
+        return plan
+
+    def _promote_canonical_snapshots_from_run(
+        self,
+        db: Session,
+        run,
+        *,
+        artifact: SourceImportArtifact,
+        observed_at: datetime,
+        created_at: datetime,
+    ) -> int:
+        snapshot_count = 0
+        for record in run.normalized_records or []:
+            record_type = record.get("record_type")
+            if run.key == "district-profile-direct-run" and record_type == "district_profile":
+                db.add(
+                    DistrictProfileSnapshot(
+                        source_artifact_id=artifact.id,
+                        run_key=run.key,
+                        district=record["key"],
+                        region_id=record["region_id"],
+                        province=record["province"],
+                        population=int(record["population"]),
+                        households=int(record["households"]),
+                        area_sqkm=float(record["area_sqkm"]),
+                        center_lat=float(record["center_lat"]),
+                        center_lng=float(record["center_lng"]),
+                        cooking_gas_share=float(record["cooking_gas_share"]),
+                        elderly_share=float(record["elderly_share"]),
+                        confidence="high",
+                        source_keys=run.source_keys,
+                        payload=record,
+                        observed_at=observed_at,
+                        created_at=created_at,
+                    )
+                )
+                snapshot_count += 1
+            elif run.key == "weather-risk-direct-run" and record_type in {"weather_station", "irrigation_water_level"}:
+                source_observed_at = parse_source_datetime(record.get("observed_at") or record.get("time_ut"))
+                db.add(
+                    WeatherRiskSnapshot(
+                        source_artifact_id=artifact.id,
+                        run_key=run.key,
+                        record_type=record_type,
+                        station_id=record.get("station_id"),
+                        station_name=record["station_name"],
+                        source_observed_at=source_observed_at,
+                        rainfall_mm=float(record["rainfall_mm"]) if record.get("rainfall_mm") is not None else None,
+                        temperature_c=float(record["temperature_c"]) if record.get("temperature_c") is not None else None,
+                        humidity_percent=float(record["humidity_percent"]) if record.get("humidity_percent") is not None else None,
+                        water_level_m=float(record["water_level_m"]) if record.get("water_level_m") is not None else None,
+                        source_keys=run.source_keys,
+                        payload=record,
+                        observed_at=observed_at,
+                        created_at=created_at,
+                    )
+                )
+                snapshot_count += 1
+        return snapshot_count
+
+    def _promote_area_score_snapshots(self, db: Session, *, observed_at: datetime) -> int:
+        snapshot_count = 0
+        for district in DISTRICTS:
+            for profile in PROFILE_FACTORS:
+                score = self.area_score(db, district=district, profile=profile, persist=False, source_observed_at=observed_at)
+                db.add(
+                    AreaScoreSnapshot(
+                        district=score.district,
+                        profile=score.profile,
+                        score=score.score,
+                        grade=score.grade,
+                        confidence=score.confidence,
+                        components=[component.model_dump(mode="json") for component in score.components],
+                        observed_at=observed_at,
+                    )
+                )
+                snapshot_count += 1
+        return snapshot_count
+
+    def _source_import_artifact_for_run(self, run, *, observed_at: datetime, created_at: datetime) -> SourceImportArtifact:
+        normalized_records = run.normalized_records or []
+        checks = [check.model_dump(mode="json") for check in run.checks]
+        return SourceImportArtifact(
+            run_key=run.key,
+            domain_key=run.domain_key,
+            status=run.status,
+            mode=run.mode,
+            accepted_for_scoring=run.accepted_for_scoring,
+            rows_imported=run.rows_imported,
+            source_keys=run.source_keys,
+            checks=checks,
+            normalized_records=normalized_records,
+            payload_summary={
+                "label": run.label,
+                "storage_target": run.storage_target,
+                "action": run.action,
+                "fetched_urls": run.fetched_urls,
+                "fetched_url_count": len(run.fetched_urls),
+                "normalized_record_count": len(normalized_records),
+                "raw_payload_stored": False,
+                "promoted_records": run.promoted_records,
+                "promotion_note": run.promotion_note,
+            },
+            observed_at=observed_at,
+            created_at=created_at,
+        )
+
+    def _source_data_release_for_execution(
+        self,
+        execution: SourceImportExecutionResponse,
+        *,
+        artifact_ids: list[int],
+        canonical_snapshot_counts: dict[str, int],
+        area_score_snapshot_count: int,
+        created_at: datetime,
+    ) -> SourceDataRelease:
+        release_key = f"direct-source-{execution.generated_at.strftime('%Y%m%dT%H%M%S%fZ')}"
+        source_keys = sorted({key for run in execution.runs for key in run.source_keys})
+        checks = [
+            {**check.model_dump(mode="json"), "run_key": run.key}
+            for run in execution.runs
+            for check in run.checks
+        ]
+        operator_notes = [
+            self._source_data_release_note(
+                action="promote",
+                note="Created by guarded live source-import promotion.",
+                created_at=created_at,
+                source="system",
+            )
+        ]
+        return SourceDataRelease(
+            release_key=release_key,
+            status="promoted",
+            source_import_artifact_ids=artifact_ids,
+            run_keys=[run.key for run in execution.runs],
+            source_keys=source_keys,
+            checks=checks,
+            district_profile_snapshot_count=canonical_snapshot_counts.get("district-profile-direct-run", 0),
+            weather_risk_snapshot_count=canonical_snapshot_counts.get("weather-risk-direct-run", 0),
+            area_score_snapshot_count=area_score_snapshot_count,
+            payload_summary={
+                "summary": execution.summary,
+                "status": execution.status,
+                "mode": "live_fetch",
+                "promotion_gate": "live_fetch=true&persist=true&healthy&accepted_for_scoring",
+                "artifact_count": len(artifact_ids),
+            },
+            operator_notes=operator_notes,
+            observed_at=execution.generated_at,
+            created_at=created_at,
+        )
+
+    def _source_data_release_note(
+        self,
+        *,
+        action: str,
+        note: str,
+        created_at: datetime,
+        source: str,
+        target_release_key: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "action": action,
+            "note": note,
+            "source": source,
+            "created_at": created_at.isoformat(),
+        }
+        if target_release_key:
+            payload["target_release_key"] = target_release_key
+        return payload
+
+    def _append_source_data_release_note(
+        self,
+        release: SourceDataRelease,
+        *,
+        action: str,
+        note: str,
+        created_at: datetime,
+        source: str,
+        target_release_key: str | None = None,
+    ) -> None:
+        release.operator_notes = [
+            *(release.operator_notes or []),
+            self._source_data_release_note(
+                action=action,
+                note=note,
+                created_at=created_at,
+                source=source,
+                target_release_key=target_release_key,
+            ),
+        ]
+
+    def _source_data_release_summary(self, row: SourceDataRelease) -> SourceDataReleaseSummary:
+        return SourceDataReleaseSummary(
+            id=row.id,
+            release_key=row.release_key,
+            status=row.status,
+            source_import_artifact_ids=row.source_import_artifact_ids,
+            run_keys=row.run_keys,
+            source_keys=row.source_keys,
+            checks=[SourceImportCheck(**check) for check in row.checks],
+            district_profile_snapshot_count=row.district_profile_snapshot_count,
+            weather_risk_snapshot_count=row.weather_risk_snapshot_count,
+            area_score_snapshot_count=row.area_score_snapshot_count,
+            payload_summary=row.payload_summary,
+            operator_notes=row.operator_notes or [],
+            superseded_at=row.superseded_at,
+            superseded_by_release_key=row.superseded_by_release_key,
+            rolled_back_at=row.rolled_back_at,
+            observed_at=row.observed_at,
+            created_at=row.created_at,
+        )
+
+    def _supersede_current_source_data_releases(
+        self,
+        db: Session,
+        *,
+        replacement_release_key: str,
+        created_at: datetime,
+    ) -> int:
+        rows = db.scalars(
+            select(SourceDataRelease).where(
+                SourceDataRelease.status == "promoted",
+                SourceDataRelease.release_key != replacement_release_key,
+            )
+        ).all()
+        for row in rows:
+            row.status = "superseded"
+            row.superseded_at = created_at
+            row.superseded_by_release_key = replacement_release_key
+            self._append_source_data_release_note(
+                row,
+                action="supersede",
+                note=f"Superseded by {replacement_release_key}.",
+                created_at=created_at,
+                source="system",
+                target_release_key=replacement_release_key,
+            )
+        return len(rows)
+
+    async def source_import_run(
+        self,
+        db: Session,
+        *,
+        live_fetch: bool = False,
+        promote: bool = False,
+        persist: bool = True,
+        include_official_cost: bool = False,
+    ) -> SourceImportExecutionResponse:
+        from app.services.source_imports import source_import_execution_report
+
+        self.ensure_domains_sync(db)
+        self.ensure_sources(db)
+        execution = await source_import_execution_report(live_fetch=live_fetch, include_official_cost=include_official_cost)
+        promoted_records = 0
+        promotion_allowed = persist and promote and live_fetch and execution.status == "healthy" and all(run.accepted_for_scoring for run in execution.runs)
+        if persist:
+            now = utc_now()
+            canonical_snapshot_counts: dict[str, int] = {}
+            artifacts_by_key: dict[str, SourceImportArtifact] = {}
+            artifact_ids: list[int] = []
+            release_key: str | None = None
+            for run in execution.runs:
+                artifact = self._source_import_artifact_for_run(run, observed_at=execution.generated_at, created_at=now)
+                db.add(artifact)
+                db.flush()
+                artifacts_by_key[run.key] = artifact
+                artifact_ids.append(artifact.id)
+                canonical_count = 0
+                if promotion_allowed:
+                    canonical_count = self._promote_canonical_snapshots_from_run(
+                        db,
+                        run,
+                        artifact=artifact,
+                        observed_at=execution.generated_at,
+                        created_at=now,
+                    )
+                canonical_snapshot_counts[run.key] = canonical_count
+                artifact.payload_summary = {**artifact.payload_summary, "canonical_snapshot_count": canonical_count}
+            if promotion_allowed:
+                db.flush()
+                promoted_records = self._promote_area_score_snapshots(db, observed_at=execution.generated_at)
+                release = self._source_data_release_for_execution(
+                    execution,
+                    artifact_ids=artifact_ids,
+                    canonical_snapshot_counts=canonical_snapshot_counts,
+                    area_score_snapshot_count=promoted_records,
+                    created_at=now,
+                )
+                db.add(release)
+                db.flush()
+                release_key = release.release_key
+                superseded_count = self._supersede_current_source_data_releases(
+                    db,
+                    replacement_release_key=release.release_key,
+                    created_at=now,
+                )
+                release.payload_summary = {
+                    **release.payload_summary,
+                    "superseded_release_count": superseded_count,
+                }
+                for run in execution.runs:
+                    run.promoted_records = promoted_records
+                    run.promotion_note = (
+                        f"Promoted {canonical_snapshot_counts.get(run.key, 0)} canonical source snapshots "
+                        f"and {promoted_records} area score snapshots in release {release.release_key}."
+                    )
+                    artifact = artifacts_by_key[run.key]
+                    artifact.payload_summary = {
+                        **artifact.payload_summary,
+                        "promoted_records": run.promoted_records,
+                        "promotion_note": run.promotion_note,
+                        "source_data_release_key": release.release_key,
+                    }
+            for run in execution.runs:
+                db.add(
+                    IntegrationRun(
+                        domain_key=run.domain_key,
+                        status="failed" if run.status == "fail" else "completed",
+                        started_at=execution.generated_at,
+                        finished_at=now,
+                        error_message=run.action if run.status == "fail" else None,
+                        payload_summary={
+                            "execution_key": run.key,
+                            "execution_status": run.status,
+                            "mode": run.mode,
+                            "rows_imported": run.rows_imported,
+                            "accepted_for_scoring": run.accepted_for_scoring,
+                            "promoted_records": run.promoted_records,
+                            "fetched_url_count": len(run.fetched_urls),
+                            "source_import_artifact_stored": True,
+                            "source_data_release_key": release_key,
+                            "normalized_record_count": len(run.normalized_records or []),
+                            "canonical_snapshot_count": canonical_snapshot_counts.get(run.key, 0),
+                            "checks": [
+                                {
+                                    "key": check.key,
+                                    "status": check.status,
+                                    "message": check.message,
+                                }
+                                for check in run.checks
+                            ],
+                        },
+                    )
+                )
+            db.commit()
+        return execution
+
+    def source_import_artifacts(
+        self,
+        db: Session,
+        *,
+        run_key: str | None = None,
+        limit: int = 20,
+        include_records: bool = False,
+    ) -> SourceImportArtifactsResponse:
+        statement = select(SourceImportArtifact).order_by(desc(SourceImportArtifact.created_at), desc(SourceImportArtifact.id)).limit(limit)
+        if run_key:
+            statement = (
+                select(SourceImportArtifact)
+                .where(SourceImportArtifact.run_key == run_key)
+                .order_by(desc(SourceImportArtifact.created_at), desc(SourceImportArtifact.id))
+                .limit(limit)
+            )
+        rows = db.scalars(statement).all()
+        return SourceImportArtifactsResponse(
+            generated_at=utc_now(),
+            artifacts=[
+                SourceImportArtifactSummary(
+                    id=row.id,
+                    run_key=row.run_key,
+                    domain_key=row.domain_key,
+                    status=row.status,
+                    mode=row.mode,
+                    accepted_for_scoring=row.accepted_for_scoring,
+                    rows_imported=row.rows_imported,
+                    source_keys=row.source_keys,
+                    checks=[SourceImportCheck(**check) for check in row.checks],
+                    normalized_record_count=row.payload_summary.get("normalized_record_count", len(row.normalized_records or [])),
+                    normalized_records=row.normalized_records if include_records else [],
+                    payload_summary=row.payload_summary,
+                    observed_at=row.observed_at,
+                    created_at=row.created_at,
+                )
+                for row in rows
+            ],
+        )
+
+    def source_data_releases(self, db: Session, *, limit: int = 20) -> SourceDataReleasesResponse:
+        rows = db.scalars(
+            select(SourceDataRelease)
+            .order_by(desc(SourceDataRelease.observed_at), desc(SourceDataRelease.id))
+            .limit(limit)
+        ).all()
+        active_release = self._active_source_data_release(db)
+        return SourceDataReleasesResponse(
+            generated_at=utc_now(),
+            active_release_key=active_release.release_key if active_release else None,
+            releases=[self._source_data_release_summary(row) for row in rows],
+        )
+
+    def add_source_data_release_note(
+        self,
+        db: Session,
+        *,
+        release_key: str,
+        note: str | None,
+    ) -> SourceDataReleaseActionResponse:
+        release = db.scalar(select(SourceDataRelease).where(SourceDataRelease.release_key == release_key))
+        if release is None:
+            raise ValueError("Source data release not found")
+        normalized_note = (note or "").strip()
+        if not normalized_note:
+            raise ValueError("A release note is required")
+        now = utc_now()
+        self._append_source_data_release_note(
+            release,
+            action="note",
+            note=normalized_note,
+            created_at=now,
+            source="operator",
+        )
+        db.commit()
+        db.refresh(release)
+        active_release = self._active_source_data_release(db)
+        return SourceDataReleaseActionResponse(
+            generated_at=utc_now(),
+            action="note",
+            message=f"Added operator note to source data release {release.release_key}.",
+            active_release_key=active_release.release_key if active_release else None,
+            release=self._source_data_release_summary(release),
+        )
+
+    def rollback_source_data_release(
+        self,
+        db: Session,
+        *,
+        release_key: str,
+        note: str | None,
+        reactivate_previous: bool = True,
+    ) -> SourceDataReleaseActionResponse:
+        release = db.scalar(select(SourceDataRelease).where(SourceDataRelease.release_key == release_key))
+        if release is None:
+            raise ValueError("Source data release not found")
+        if release.status != "promoted":
+            raise ValueError("Only the currently promoted source data release can be rolled back")
+
+        now = utc_now()
+        release.status = "rolled_back"
+        release.rolled_back_at = now
+        self._append_source_data_release_note(
+            release,
+            action="rollback",
+            note=(note or "Rolled back by operator.").strip(),
+            created_at=now,
+            source="operator",
+        )
+
+        reactivated: SourceDataRelease | None = None
+        if reactivate_previous:
+            reactivated = db.scalar(
+                select(SourceDataRelease)
+                .where(
+                    SourceDataRelease.status == "superseded",
+                    SourceDataRelease.observed_at < release.observed_at,
+                    *self._complete_source_release_filters(),
+                )
+                .order_by(desc(SourceDataRelease.observed_at), desc(SourceDataRelease.id))
+                .limit(1)
+            )
+            if reactivated is not None:
+                reactivated.status = "promoted"
+                reactivated.superseded_at = None
+                reactivated.superseded_by_release_key = None
+                self._append_source_data_release_note(
+                    reactivated,
+                    action="reactivate",
+                    note=f"Reactivated after rollback of {release.release_key}.",
+                    created_at=now,
+                    source="system",
+                    target_release_key=release.release_key,
+                )
+
+        db.commit()
+        db.refresh(release)
+        if reactivated is not None:
+            db.refresh(reactivated)
+        active_release = self._active_source_data_release(db)
+        return SourceDataReleaseActionResponse(
+            generated_at=utc_now(),
+            action="rollback",
+            message=(
+                f"Rolled back {release.release_key} and reactivated {reactivated.release_key}."
+                if reactivated is not None
+                else f"Rolled back {release.release_key}; no previous complete release was reactivated."
+            ),
+            active_release_key=active_release.release_key if active_release else None,
+            release=self._source_data_release_summary(release),
+            reactivated_release=self._source_data_release_summary(reactivated) if reactivated is not None else None,
+        )
 
     def _metric_value(self, domain: DomainSignal | None, label: str) -> float | None:
         if domain is None:

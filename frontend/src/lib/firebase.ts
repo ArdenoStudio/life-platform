@@ -1,5 +1,5 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth'
+import type { FirebaseApp } from 'firebase/app'
+import type { Auth, GoogleAuthProvider } from 'firebase/auth'
 
 type FirebaseRuntime = {
   app: FirebaseApp
@@ -8,6 +8,7 @@ type FirebaseRuntime = {
 }
 
 let runtime: FirebaseRuntime | null = null
+let runtimePromise: Promise<FirebaseRuntime | null> | null = null
 
 export function isTestAuthConfigured() {
   return Boolean(testAuthToken())
@@ -22,22 +23,26 @@ export function isFirebaseConfigured() {
   )
 }
 
-export function getFirebaseRuntime(): FirebaseRuntime | null {
+export async function getFirebaseRuntime(): Promise<FirebaseRuntime | null> {
   if (!isFirebaseConfigured()) return null
   if (runtime) return runtime
-  const app = initializeApp({
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  if (runtimePromise) return runtimePromise
+  runtimePromise = Promise.all([import('firebase/app'), import('firebase/auth')]).then(([appModule, authModule]) => {
+    const app = appModule.initializeApp({
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    })
+    runtime = {
+      app,
+      auth: authModule.getAuth(app),
+      provider: new authModule.GoogleAuthProvider(),
+    }
+    return runtime
   })
-  runtime = {
-    app,
-    auth: getAuth(app),
-    provider: new GoogleAuthProvider(),
-  }
-  return runtime
+  return runtimePromise
 }
 
 export function testAuthToken() {

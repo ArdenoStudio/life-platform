@@ -14,6 +14,11 @@ class VehicleAdapter(DomainAdapter):
     def api_base(self) -> str:
         return self.settings.vehicle_api_base.rstrip("/")
 
+    def sources(self):
+        from app.services.living_atlas_data import source_refs
+
+        return source_refs("vehicle")
+
     async def fetch(self, client: httpx.AsyncClient) -> DomainSignal:
         if self.settings.life_use_fixtures:
             return self.fixture_signal()
@@ -51,6 +56,7 @@ class VehicleAdapter(DomainAdapter):
                 self.highlight("Vehicle pressure", "Vehicle affordability depends on market listings plus import/tax signals", "watch", "/domains/vehicle"),
             ],
             top_items=[stats],
+            sources=self.sources(),
         )
 
     def fixture_signal(self, *, error: str | None = None) -> DomainSignal:
@@ -76,5 +82,6 @@ class VehicleAdapter(DomainAdapter):
             ],
             highlights=[self.highlight("Mobility cost", "Fuel plus vehicle ownership belongs in one monthly-life view", "neutral", "/affordability")],
             top_items=[],
+            sources=self.sources(),
             errors=[error] if error else [],
         )

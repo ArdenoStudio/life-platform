@@ -70,6 +70,89 @@ class IntegrationRun(Base):
     domain: Mapped[Domain] = relationship(back_populates="runs")
 
 
+class SourceImportArtifact(Base):
+    __tablename__ = "source_import_artifacts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_key: Mapped[str] = mapped_column(String(120), index=True)
+    domain_key: Mapped[str] = mapped_column(ForeignKey("domains.key"), index=True)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    mode: Mapped[str] = mapped_column(String(32), index=True)
+    accepted_for_scoring: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    rows_imported: Mapped[int] = mapped_column(Integer, default=0)
+    source_keys: Mapped[list] = mapped_column(JSON, default=list)
+    checks: Mapped[list] = mapped_column(JSON, default=list)
+    normalized_records: Mapped[list] = mapped_column(JSON, default=list)
+    payload_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class DistrictProfileSnapshot(Base):
+    __tablename__ = "district_profile_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_artifact_id: Mapped[int | None] = mapped_column(ForeignKey("source_import_artifacts.id"), nullable=True, index=True)
+    run_key: Mapped[str] = mapped_column(String(120), index=True)
+    district: Mapped[str] = mapped_column(String(128), index=True)
+    region_id: Mapped[str] = mapped_column(String(16), index=True)
+    province: Mapped[str] = mapped_column(String(80), index=True)
+    population: Mapped[int] = mapped_column(Integer)
+    households: Mapped[int] = mapped_column(Integer)
+    area_sqkm: Mapped[float] = mapped_column(Float)
+    center_lat: Mapped[float] = mapped_column(Float)
+    center_lng: Mapped[float] = mapped_column(Float)
+    cooking_gas_share: Mapped[float] = mapped_column(Float)
+    elderly_share: Mapped[float] = mapped_column(Float)
+    confidence: Mapped[str] = mapped_column(String(32), default="high")
+    source_keys: Mapped[list] = mapped_column(JSON, default=list)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class WeatherRiskSnapshot(Base):
+    __tablename__ = "weather_risk_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_artifact_id: Mapped[int | None] = mapped_column(ForeignKey("source_import_artifacts.id"), nullable=True, index=True)
+    run_key: Mapped[str] = mapped_column(String(120), index=True)
+    record_type: Mapped[str] = mapped_column(String(64), index=True)
+    station_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    station_name: Mapped[str] = mapped_column(String(120), index=True)
+    source_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    rainfall_mm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    temperature_c: Mapped[float | None] = mapped_column(Float, nullable=True)
+    humidity_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    water_level_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source_keys: Mapped[list] = mapped_column(JSON, default=list)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class SourceDataRelease(Base):
+    __tablename__ = "source_data_releases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    release_key: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="promoted", index=True)
+    source_import_artifact_ids: Mapped[list] = mapped_column(JSON, default=list)
+    run_keys: Mapped[list] = mapped_column(JSON, default=list)
+    source_keys: Mapped[list] = mapped_column(JSON, default=list)
+    checks: Mapped[list] = mapped_column(JSON, default=list)
+    district_profile_snapshot_count: Mapped[int] = mapped_column(Integer, default=0)
+    weather_risk_snapshot_count: Mapped[int] = mapped_column(Integer, default=0)
+    area_score_snapshot_count: Mapped[int] = mapped_column(Integer, default=0)
+    payload_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    operator_notes: Mapped[list] = mapped_column(JSON, default=list)
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    superseded_by_release_key: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    rolled_back_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
 class SourceRegistry(Base):
     __tablename__ = "source_registry"
 
@@ -80,6 +163,12 @@ class SourceRegistry(Base):
     url: Mapped[str] = mapped_column(String(512))
     confidence: Mapped[str] = mapped_column(String(32), default="medium")
     freshness_note: Mapped[str] = mapped_column(Text)
+    owner: Mapped[str] = mapped_column(String(160), default="Unknown")
+    collection_method: Mapped[str] = mapped_column(String(80), default="manual_review")
+    license_status: Mapped[str] = mapped_column(String(80), default="needs_review")
+    review_status: Mapped[str] = mapped_column(String(80), default="needs_review")
+    refresh_cadence: Mapped[str] = mapped_column(String(160), default="scheduled or manual refresh")
+    governance_note: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(32), default="healthy", index=True)
     locale_labels: Mapped[dict] = mapped_column(JSON, default=dict)
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

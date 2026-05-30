@@ -13,10 +13,16 @@ import type {
   PipelineResponse,
   Profile,
   LocaleCode,
+  PublicSourceReleaseResponse,
   RetailOffersResponse,
   SavedItem,
   SavedItemCreate,
   SearchResult,
+  SourceDataReleaseActionResponse,
+  SourceDataReleasesResponse,
+  SourceImportArtifactsResponse,
+  SourceImportExecutionResponse,
+  SourceValidationResponse,
   TransportResponse,
   TrendsResponse,
   UserProfile,
@@ -108,6 +114,56 @@ export function getTrends(domain?: string, days = 90) {
 
 export function getPipeline() {
   return request<PipelineResponse>('/life/pipeline')
+}
+
+export function getSourceValidation() {
+  return request<SourceValidationResponse>('/life/source-validation')
+}
+
+export function getSourceRelease() {
+  return request<PublicSourceReleaseResponse>('/life/source-release')
+}
+
+export function getSourceDataReleases(authToken: string, limit = 20) {
+  const params = new URLSearchParams({ limit: String(limit) })
+  return request<SourceDataReleasesResponse>(`/internal/source-data-releases?${params}`, { authToken })
+}
+
+export function runSourceImportReview(
+  authToken: string,
+  options: { includeOfficialCost?: boolean; liveFetch?: boolean; persist?: boolean } = {},
+) {
+  const params = new URLSearchParams({
+    include_official_cost: String(options.includeOfficialCost ?? false),
+    live_fetch: String(options.liveFetch ?? false),
+    persist: String(options.persist ?? true),
+  })
+  return request<SourceImportExecutionResponse>(`/internal/source-import-run?${params}`, { authToken, method: 'POST' })
+}
+
+export function getSourceImportArtifacts(authToken: string, options: { runKey?: string; includeRecords?: boolean; limit?: number } = {}) {
+  const params = new URLSearchParams({
+    include_records: String(options.includeRecords ?? false),
+    limit: String(options.limit ?? 20),
+  })
+  if (options.runKey) params.set('run_key', options.runKey)
+  return request<SourceImportArtifactsResponse>(`/internal/source-import-artifacts?${params}`, { authToken })
+}
+
+export function addSourceDataReleaseNote(authToken: string, releaseKey: string, note: string) {
+  return request<SourceDataReleaseActionResponse>(`/internal/source-data-releases/${encodeURIComponent(releaseKey)}/notes`, {
+    authToken,
+    body: JSON.stringify({ note }),
+    method: 'POST',
+  })
+}
+
+export function rollbackSourceDataRelease(authToken: string, releaseKey: string, note: string, reactivatePrevious = true) {
+  return request<SourceDataReleaseActionResponse>(`/internal/source-data-releases/${encodeURIComponent(releaseKey)}/rollback`, {
+    authToken,
+    body: JSON.stringify({ note, reactivate_previous: reactivatePrevious }),
+    method: 'POST',
+  })
 }
 
 export function getLifePulse(authToken: string) {

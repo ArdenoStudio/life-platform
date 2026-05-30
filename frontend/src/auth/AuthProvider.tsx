@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signInWithPopup, signOut, type User as FirebaseUser } from 'firebase/auth'
+import type { User as FirebaseUser } from 'firebase/auth'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { AuthContext, type AuthContextValue, type LifeAuthUser } from './AuthContext'
@@ -31,14 +31,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isTestAuthConfigured()) {
       return
     }
-    const runtime = getFirebaseRuntime()
-    if (!runtime) {
-      return
+    let unsubscribe: (() => void) | undefined
+    let cancelled = false
+
+    async function subscribe() {
+      const runtime = await getFirebaseRuntime()
+      if (cancelled) return
+      if (!runtime) {
+        setAuthLoading(false)
+        return
+      }
+      const { onAuthStateChanged } = await import('firebase/auth')
+      if (cancelled) return
+      unsubscribe = onAuthStateChanged(runtime.auth, (nextUser) => {
+        setFirebaseUser(nextUser)
+        setAuthLoading(false)
+      })
     }
-    return onAuthStateChanged(runtime.auth, (nextUser) => {
-      setFirebaseUser(nextUser)
-      setAuthLoading(false)
+
+    void subscribe().catch(() => {
+      if (!cancelled) setAuthLoading(false)
     })
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
   }, [])
 
   const getToken = useCallback(async () => {
@@ -53,8 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTestSignedIn(true)
       return
     }
-    const runtime = getFirebaseRuntime()
+    const runtime = await getFirebaseRuntime()
     if (!runtime) return
+    const { signInWithPopup } = await import('firebase/auth')
     await signInWithPopup(runtime.auth, runtime.provider)
   }, [])
 
@@ -63,8 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTestSignedIn(false)
       return
     }
-    const runtime = getFirebaseRuntime()
-    if (runtime) await signOut(runtime.auth)
+    const runtime = await getFirebaseRuntime()
+    if (!runtime) return
+    const { signOut } = await import('firebase/auth')
+    await signOut(runtime.auth)
   }, [])
 
   const value = useMemo<AuthContextValue>(() => {

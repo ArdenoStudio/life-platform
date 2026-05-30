@@ -18,20 +18,30 @@ jobs:
             echo "LIFE_API_BASE is not configured; skipping deployed refresh."
             exit 0
           fi
-          curl --fail --silent --show-error "$LIFE_API_BASE/life/domains?force_refresh=true" > /tmp/life-domains.json
-          curl --fail --silent --show-error "$LIFE_API_BASE/life/pipeline" > /tmp/life-pipeline.json
           if [ -n "$LIFE_INTERNAL_TOKEN" ]; then
             curl --fail --silent --show-error \
               -X POST \
               -H "Authorization: Bearer $LIFE_INTERNAL_TOKEN" \
-              "$LIFE_API_BASE/internal/alerts/evaluate" > /tmp/life-alerts.json
+              "$LIFE_API_BASE/internal/source-refresh?force_refresh=true&evaluate_alerts=true" > /tmp/life-source-refresh.json
           else
-            echo '{"alerts":"skipped"}' > /tmp/life-alerts.json
+            curl --fail --silent --show-error "$LIFE_API_BASE/life/domains?force_refresh=true" > /tmp/life-domains.json
+            curl --fail --silent --show-error "$LIFE_API_BASE/life/pipeline" > /tmp/life-pipeline.json
+            curl --fail --silent --show-error "$LIFE_API_BASE/life/source-validation" > /tmp/life-source-validation.json
+            echo '{"source_refresh":"skipped_internal_token"}' > /tmp/life-source-refresh.json
           fi
           python - <<'PY'
           import json
-          for path in ["/tmp/life-domains.json", "/tmp/life-pipeline.json", "/tmp/life-alerts.json"]:
-              with open(path, "r", encoding="utf-8") as handle:
-                  payload = json.load(handle)
+          paths = [
+              "/tmp/life-source-refresh.json",
+              "/tmp/life-domains.json",
+              "/tmp/life-pipeline.json",
+              "/tmp/life-source-validation.json",
+          ]
+          for path in paths:
+              try:
+                  with open(path, "r", encoding="utf-8") as handle:
+                      payload = json.load(handle)
+              except FileNotFoundError:
+                  continue
               print(path, "ok", list(payload)[:5])
           PY

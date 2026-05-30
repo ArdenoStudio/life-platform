@@ -25,6 +25,7 @@ export function Shell({
   searchResults,
   setActivePage,
   locale,
+  preloadPage,
   setLocale,
   setSearchQuery,
   signIn,
@@ -42,6 +43,7 @@ export function Shell({
   setActivePage: Dispatch<SetStateAction<PageKey>>
   setLocale: Dispatch<SetStateAction<LocaleCode>>
   setSearchQuery: Dispatch<SetStateAction<string>>
+  preloadPage?: (page: PageKey) => void
   signIn: () => Promise<void>
   signOut: () => Promise<void>
   unreadCount: number
@@ -52,7 +54,13 @@ export function Shell({
       <header className="floating-shell">
         <div className="mx-auto w-full max-w-[1480px] px-3 py-3 lg:px-6">
           <FloatingSurface className="flex flex-col gap-3 px-3 py-3 lg:flex-row lg:items-center">
-          <button className="flex items-center gap-3 text-left" onClick={() => setActivePage('home')} type="button">
+          <button
+            className="flex items-center gap-3 text-left"
+            onClick={() => setActivePage('home')}
+            onFocus={() => preloadPage?.('home')}
+            onMouseEnter={() => preloadPage?.('home')}
+            type="button"
+          >
             <BrandMark compact />
             <span>
               <span className="block text-xl font-black leading-none tracking-normal text-paper">{t(locale, 'brandName')}</span>
@@ -69,6 +77,8 @@ export function Shell({
                   key={item.key}
                   className={`nav-button ${active ? 'active' : ''}`}
                   onClick={() => setActivePage(item.key)}
+                  onFocus={() => preloadPage?.(item.key)}
+                  onMouseEnter={() => preloadPage?.(item.key)}
                   type="button"
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />

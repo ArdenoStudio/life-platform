@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
 import { Shell } from './components/Shell'
+import { t } from './i18n'
 import {
   createAlertRule,
   createSavedItem,
@@ -21,14 +22,32 @@ import {
   searchLife,
   updateMeProfile,
 } from './lib/api'
-import { AtlasPage } from './pages/AtlasPage'
-import { CostOSPage } from './pages/CostOSPage'
-import { HomePage } from './pages/HomePage'
-import { IntelligencePage } from './pages/IntelligencePage'
-import { SourcesPage } from './pages/SourcesPage'
 import type { LocaleCode, PageKey, Profile } from './types'
 
-const validPages: PageKey[] = ['home', 'cost', 'atlas', 'intelligence', 'sources']
+const loadHomePage = () => import('./pages/HomePage')
+const loadCostOSPage = () => import('./pages/CostOSPage')
+const loadAtlasPage = () => import('./pages/AtlasPage')
+const loadIntelligencePage = () => import('./pages/IntelligencePage')
+const loadSourcesPage = () => import('./pages/SourcesPage')
+const loadOperatorPage = () => import('./pages/OperatorPage')
+
+const HomePage = lazy(() => loadHomePage().then(({ HomePage }) => ({ default: HomePage })))
+const CostOSPage = lazy(() => loadCostOSPage().then(({ CostOSPage }) => ({ default: CostOSPage })))
+const AtlasPage = lazy(() => loadAtlasPage().then(({ AtlasPage }) => ({ default: AtlasPage })))
+const IntelligencePage = lazy(() => loadIntelligencePage().then(({ IntelligencePage }) => ({ default: IntelligencePage })))
+const SourcesPage = lazy(() => loadSourcesPage().then(({ SourcesPage }) => ({ default: SourcesPage })))
+const OperatorPage = lazy(() => loadOperatorPage().then(({ OperatorPage }) => ({ default: OperatorPage })))
+
+const pagePreloaders: Record<PageKey, () => Promise<unknown>> = {
+  atlas: loadAtlasPage,
+  cost: loadCostOSPage,
+  home: loadHomePage,
+  intelligence: loadIntelligencePage,
+  operator: loadOperatorPage,
+  sources: loadSourcesPage,
+}
+
+const validPages: PageKey[] = ['home', 'cost', 'atlas', 'intelligence', 'sources', 'operator']
 const validLocales: LocaleCode[] = ['en', 'si', 'ta']
 const validProfiles: Profile[] = ['single', 'family', 'commuter']
 
@@ -55,6 +74,10 @@ function createQueryClient() {
       },
     },
   })
+}
+
+function preloadPage(page: PageKey) {
+  void pagePreloaders[page]()
 }
 
 function AppContent() {
@@ -201,6 +224,7 @@ function AppContent() {
       setActivePage={setActivePage}
       setLocale={setLocale}
       setSearchQuery={setSearchQuery}
+      preloadPage={preloadPage}
       signIn={auth.signIn}
       signOut={auth.signOut}
       unreadCount={lifePulseQuery.data?.unread_count ?? 0}
@@ -219,62 +243,71 @@ function AppContent() {
         </div>
       ) : null}
 
-      {activePage === 'home' ? (
-        <HomePage
-          atlas={atlasQuery.data}
-          costCommand={costQuery.data}
-          district={district}
-          isLoading={overviewQuery.isLoading}
-          lifePulse={lifePulseQuery.data}
-          locale={locale}
-          onMarkNotificationRead={(notificationId) => markNotificationMutation.mutate(notificationId)}
-          onRefresh={() => void overviewQuery.refetch()}
-          onSaveProfile={() => saveProfileMutation.mutate()}
-          overview={overviewQuery.data}
-          profile={profile}
-          saveProfilePending={saveProfileMutation.isPending}
-          setActivePage={setActivePage}
-          setDistrict={setDistrict}
-          setProfile={setProfile}
-          utilities={utilitiesQuery.data}
-        />
-      ) : null}
-      {activePage === 'cost' ? (
-        <CostOSPage
-          costCommand={costQuery.data}
-          district={district}
-          locale={locale}
-          profile={profile}
-          setDistrict={setDistrict}
-          setProfile={setProfile}
-          transport={transportQuery.data}
-          utilities={utilitiesQuery.data}
-        />
-      ) : null}
-      {activePage === 'atlas' ? (
-        <AtlasPage
-          atlas={atlasQuery.data}
-          district={district}
-          locale={locale}
-          profile={profile}
-          setDistrict={setDistrict}
-          setProfile={setProfile}
-        />
-      ) : null}
-      {activePage === 'intelligence' ? (
-        <IntelligencePage
-          domains={domains}
-          insights={insightsQuery.data}
-          isSignedIn={Boolean(auth.user)}
-          locale={locale}
-          onCreateAlert={(domainKey) => createAlertMutation.mutate(domainKey)}
-          onSaveDomain={(domainKey) => saveDomainMutation.mutate(domainKey)}
-          retail={retailQuery.data}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
-      ) : null}
-      {activePage === 'sources' ? <SourcesPage domains={domains} locale={locale} /> : null}
+      <Suspense
+        fallback={
+          <div className="rounded-lg border border-white/15 bg-white/10 p-4 text-sm font-semibold text-paper">
+            {t(locale, 'loadingDesk')}
+          </div>
+        }
+      >
+        {activePage === 'home' ? (
+          <HomePage
+            atlas={atlasQuery.data}
+            costCommand={costQuery.data}
+            district={district}
+            isLoading={overviewQuery.isLoading}
+            lifePulse={lifePulseQuery.data}
+            locale={locale}
+            onMarkNotificationRead={(notificationId) => markNotificationMutation.mutate(notificationId)}
+            onRefresh={() => void overviewQuery.refetch()}
+            onSaveProfile={() => saveProfileMutation.mutate()}
+            overview={overviewQuery.data}
+            profile={profile}
+            saveProfilePending={saveProfileMutation.isPending}
+            setActivePage={setActivePage}
+            setDistrict={setDistrict}
+            setProfile={setProfile}
+            utilities={utilitiesQuery.data}
+          />
+        ) : null}
+        {activePage === 'cost' ? (
+          <CostOSPage
+            costCommand={costQuery.data}
+            district={district}
+            locale={locale}
+            profile={profile}
+            setDistrict={setDistrict}
+            setProfile={setProfile}
+            transport={transportQuery.data}
+            utilities={utilitiesQuery.data}
+          />
+        ) : null}
+        {activePage === 'atlas' ? (
+          <AtlasPage
+            atlas={atlasQuery.data}
+            district={district}
+            locale={locale}
+            profile={profile}
+            setDistrict={setDistrict}
+            setProfile={setProfile}
+          />
+        ) : null}
+        {activePage === 'intelligence' ? (
+          <IntelligencePage
+            domains={domains}
+            insights={insightsQuery.data}
+            isSignedIn={Boolean(auth.user)}
+            locale={locale}
+            onCreateAlert={(domainKey) => createAlertMutation.mutate(domainKey)}
+            onSaveDomain={(domainKey) => saveDomainMutation.mutate(domainKey)}
+            retail={retailQuery.data}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+        ) : null}
+        {activePage === 'sources' ? <SourcesPage domains={domains} locale={locale} /> : null}
+        {activePage === 'operator' ? <OperatorPage locale={locale} /> : null}
+      </Suspense>
     </Shell>
   )
 }

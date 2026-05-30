@@ -12,10 +12,13 @@ from app.schemas import (
     InsightsResponse,
     LifeOverviewResponse,
     PipelineResponse,
+    PublicSourceReleaseResponse,
     RetailOffersResponse,
     SearchResult,
+    SourceValidationResponse,
     TransportResponse,
     UtilitiesResponse,
+    WeatherRiskResponse,
 )
 from app.services.life_service import LifeService
 
@@ -67,7 +70,7 @@ async def life_affordability(
 
 @router.get("/trends")
 def life_trends(
-    domain: str | None = Query(None, pattern="^(food|fuel|property|vehicle|utilities|gas|transport|retail|indices|areas)$"),
+    domain: str | None = Query(None, pattern="^(food|fuel|property|vehicle|utilities|gas|transport|retail|indices|areas|weather)$"),
     days: int = Query(90, ge=1, le=3650),
     db: Session = Depends(get_db),
     service: LifeService = Depends(get_life_service),
@@ -81,6 +84,22 @@ async def life_pipeline(
     service: LifeService = Depends(get_life_service),
 ):
     return await service.pipeline(db)
+
+
+@router.get("/source-validation", response_model=SourceValidationResponse)
+def life_source_validation(
+    db: Session = Depends(get_db),
+    service: LifeService = Depends(get_life_service),
+):
+    return service.source_validation(db)
+
+
+@router.get("/source-release", response_model=PublicSourceReleaseResponse)
+def life_source_release(
+    db: Session = Depends(get_db),
+    service: LifeService = Depends(get_life_service),
+):
+    return service.public_source_release(db)
 
 
 @router.get("/cost-command", response_model=CostCommandResponse)
@@ -145,9 +164,18 @@ def life_retail_offers(
     return service.retail_offers(db, query=q, district=district)
 
 
+@router.get("/weather-risk", response_model=WeatherRiskResponse)
+def life_weather_risk(
+    district: str = Query("Sri Lanka"),
+    db: Session = Depends(get_db),
+    service: LifeService = Depends(get_life_service),
+):
+    return service.weather_risk(db, district=district)
+
+
 @router.get("/insights", response_model=InsightsResponse)
 async def life_insights(
-    domain: str | None = Query(None, pattern="^(food|fuel|property|vehicle|utilities|gas|transport|retail|indices|areas|sources)$"),
+    domain: str | None = Query(None, pattern="^(food|fuel|property|vehicle|utilities|gas|transport|retail|indices|areas|weather|sources)$"),
     db: Session = Depends(get_db),
     service: LifeService = Depends(get_life_service),
 ):

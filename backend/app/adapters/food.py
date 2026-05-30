@@ -4,6 +4,11 @@ import httpx
 
 from app.adapters.base import DomainAdapter, as_number, parse_dt, utc_now
 from app.schemas import DomainSignal
+from app.services.living_atlas_data import FOOD_PROTEIN_BASKET
+
+
+def protein_basket_total() -> float:
+    return sum(item["price_lkr"] * item["weekly_quantity"] for item in FOOD_PROTEIN_BASKET)
 
 
 class FoodAdapter(DomainAdapter):
@@ -15,6 +20,11 @@ class FoodAdapter(DomainAdapter):
     @property
     def api_base(self) -> str:
         return self.settings.food_api_base.rstrip("/")
+
+    def sources(self):
+        from app.services.living_atlas_data import source_refs
+
+        return source_refs("food")
 
     async def fetch(self, client: httpx.AsyncClient) -> DomainSignal:
         if self.settings.life_use_fixtures:
@@ -36,6 +46,7 @@ class FoodAdapter(DomainAdapter):
 
         status = "healthy" if score >= 70 else "degraded"
         total_basket = as_number(basket_summary.get("total_lkr"))
+        protein_basket = protein_basket_total()
         return DomainSignal(
             key="food",
             label=self.label,
@@ -54,12 +65,15 @@ class FoodAdapter(DomainAdapter):
                 self.metric("Market quotes", coverage.get("market_quotes_count"), "quotes"),
                 self.metric("Sources", coverage.get("sources_count"), "feeds"),
                 self.metric("Essentials basket", round(total_basket, 0) if total_basket else None, "LKR"),
+                self.metric("Protein basket", round(protein_basket, 0), "LKR/week"),
             ],
             highlights=[
                 self.highlight("Source health", f"{pipeline.get('healthy_sources', 0)}/{pipeline.get('total_sources', 0)} healthy", "good" if status == "healthy" else "watch", "/sources"),
                 self.highlight("Basket signal", f"LKR {total_basket:,.0f}" if total_basket else "Pending basket", "neutral", "/affordability"),
+                self.highlight("Protein basket", f"LKR {protein_basket:,.0f}/week", "watch", "/?page=intelligence"),
             ],
             top_items=basket.get("items", [])[:6],
+            sources=self.sources(),
         )
 
     async def _fetch_live(self, client: httpx.AsyncClient) -> tuple[dict, dict, dict]:
@@ -88,15 +102,18 @@ class FoodAdapter(DomainAdapter):
                 self.metric("Market quotes", 59500, "quotes"),
                 self.metric("Sources", 10, "feeds"),
                 self.metric("Essentials basket", 8650, "LKR"),
+                self.metric("Protein basket", round(protein_basket_total(), 0), "LKR/week"),
             ],
             highlights=[
                 self.highlight("Food basket", "Essentials basket near LKR 8,650", "neutral", "/affordability"),
                 self.highlight("Coverage", "Retail + market source blend", "good", "/sources"),
+                self.highlight("Protein basket", f"LKR {protein_basket_total():,.0f}/week", "watch", "/?page=intelligence"),
             ],
             top_items=[
                 {"label": "Rice", "price_lkr": 320, "source": "market"},
                 {"label": "Dhal", "price_lkr": 420, "source": "retail"},
                 {"label": "Big onion", "price_lkr": 290, "source": "market"},
             ],
+            sources=self.sources(),
             errors=[error] if error else [],
         )

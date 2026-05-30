@@ -622,6 +622,16 @@ code {
   color: #f7f0e2;
 }
 
+.atlas-control.on-paper {
+  color: #6f695d;
+}
+
+.atlas-control.on-paper select {
+  border-color: rgba(17, 19, 15, 0.13);
+  background: rgba(255, 255, 255, 0.74);
+  color: #11130f;
+}
+
 .atlas-action,
 .atlas-refresh {
   display: inline-flex;

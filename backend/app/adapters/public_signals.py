@@ -2,7 +2,7 @@ import httpx
 
 from app.adapters.base import DomainAdapter, utc_now
 from app.schemas import DomainSignal
-from app.services.living_atlas_data import GAS_TARIFFS, RETAIL_OFFERS, TRANSPORT_OPTIONS, UTILITY_TARIFFS, source_refs
+from app.services.living_atlas_data import GAS_TARIFFS, RETAIL_OFFERS, TRANSPORT_OPTIONS, UTILITY_TARIFFS, source_refs, weather_risk_observations
 
 
 class StaticSignalAdapter(DomainAdapter):
@@ -215,6 +215,54 @@ class IndicesAdapter(StaticSignalAdapter):
         )
 
 
+class WeatherRiskAdapter(StaticSignalAdapter):
+    key = "weather"
+    label = "Weather and Risk"
+    category = "Weather observations, rain pressure, and public risk context"
+    homepage_url = "https://www.dmc.gov.lk/"
+    source_domain = "weather"
+
+    @property
+    def api_base(self) -> str:
+        return "https://www.meteo.gov.lk/"
+
+    def fixture_signal(self, *, error: str | None = None) -> DomainSignal:
+        now = utc_now()
+        refs = source_refs("weather")
+        primary = next((source for source in refs if source.key == "dmc-lk"), refs[0])
+        observations = weather_risk_observations()
+        highest = max(observations, key=lambda item: item.risk_score)
+        direct_count = sum(1 for item in observations if item.coverage == "direct")
+        sorted_items = sorted(observations, key=lambda item: item.risk_score, reverse=True)
+        return DomainSignal(
+            key="weather",
+            label=self.label,
+            category=self.category,
+            status="healthy" if error is None else "degraded",
+            health_score=74 if error is None else 41,
+            summary="District weather and public-risk planning signals from Met Department extracts, DMC context, river datasets, and Open-Meteo candidates.",
+            api_base=self.api_base,
+            source_url=primary.url,
+            homepage_url=self.homepage_url,
+            last_updated_at=highest.observed_at,
+            observed_at=now,
+            freshness_note="Reviewed seed from public 3-hour weather extracts; operational alerts still need direct DMC/Irrigation ingestion.",
+            metrics=[
+                self.metric("Highest 3h rain", highest.rainfall_mm, "mm", f"{highest.district} via {highest.station_name} station"),
+                self.metric("Highest risk score", highest.risk_score, "/100", highest.note),
+                self.metric("Direct station districts", direct_count, "districts"),
+                self.metric("Risk rows", len(observations), "districts"),
+            ],
+            highlights=[
+                self.highlight("Rain watch", f"{highest.district} has the highest reviewed rain pressure at {highest.rainfall_mm:g}mm.", highest.severity, "/?page=intelligence"),
+                self.highlight("Coverage caveat", "Proxy station rows are labelled until district-level DMC and Irrigation ingestion is automated.", "watch", "/sources"),
+            ],
+            top_items=[item.model_dump(mode="json") for item in sorted_items[:8]],
+            sources=refs,
+            errors=[error] if error else [],
+        )
+
+
 class AreaScoreAdapter(StaticSignalAdapter):
     key = "areas"
     label = "District Life Scores"
@@ -239,8 +287,8 @@ class AreaScoreAdapter(StaticSignalAdapter):
             observed_at=now,
             freshness_note="Derived Ariva score; inputs are labelled and weighted for public planning, not formal statistics.",
             metrics=[
-                self.metric("Districts scored", 8, "districts"),
-                self.metric("Score components", 5, "signals"),
+                self.metric("Districts scored", 26, "districts"),
+                self.metric("Score components", 7, "signals"),
             ],
             highlights=[
                 self.highlight("Atlas mode", "District heat panels ready for public comparison", "good", "/?page=atlas"),

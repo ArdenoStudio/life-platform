@@ -1,4 +1,4 @@
-export type DomainKey = 'food' | 'fuel' | 'property' | 'vehicle' | 'utilities' | 'gas' | 'transport' | 'retail' | 'indices' | 'areas'
+export type DomainKey = 'food' | 'fuel' | 'property' | 'vehicle' | 'utilities' | 'gas' | 'transport' | 'retail' | 'indices' | 'areas' | 'weather'
 export type SourceStatus = 'healthy' | 'degraded' | 'offline'
 export type Trend = 'up' | 'down' | 'flat' | 'unknown'
 export type Confidence = 'high' | 'medium' | 'low'
@@ -13,6 +13,12 @@ export interface SourceReference {
   url: string
   confidence: Confidence
   freshness_note: string
+  owner: string
+  collection_method: string
+  license_status: 'official_public' | 'permissive' | 'terms_review' | 'internal_platform' | 'needs_review'
+  review_status: 'approved' | 'reviewed' | 'candidate' | 'needs_review'
+  refresh_cadence: string
+  governance_note: string
   last_checked_at: string | null
   labels: Record<string, string>
 }
@@ -138,6 +144,126 @@ export interface PipelineResponse {
   }>
 }
 
+export interface SourceValidationCheck {
+  key: string
+  label: string
+  status: 'pass' | 'watch' | 'fail'
+  message: string
+  evidence: string[]
+  source_keys: string[]
+}
+
+export interface SourceValidationResponse {
+  generated_at: string
+  status: SourceStatus
+  summary: string
+  checks: SourceValidationCheck[]
+  sources: SourceReference[]
+}
+
+export interface SourceImportCheck {
+  key: string
+  label: string
+  status: 'pass' | 'watch' | 'fail'
+  message: string
+  evidence: string[]
+}
+
+export interface SourceImportExecutionRun {
+  key: string
+  label: string
+  domain_key: DomainKey
+  status: 'pass' | 'watch' | 'fail'
+  mode: 'offline_contract' | 'live_fetch'
+  rows_imported: number
+  accepted_for_scoring: boolean
+  source_keys: string[]
+  fetched_urls: string[]
+  storage_target: string
+  action: string
+  normalized_records: Array<Record<string, unknown>>
+  promoted_records: number
+  promotion_note: string | null
+  checks: SourceImportCheck[]
+}
+
+export interface SourceImportExecutionResponse {
+  generated_at: string
+  status: SourceStatus
+  summary: string
+  runs: SourceImportExecutionRun[]
+  sources: SourceReference[]
+}
+
+export interface SourceImportArtifactSummary {
+  id: number
+  run_key: string
+  domain_key: DomainKey
+  status: 'pass' | 'watch' | 'fail'
+  mode: 'offline_contract' | 'live_fetch'
+  accepted_for_scoring: boolean
+  rows_imported: number
+  source_keys: string[]
+  checks: SourceImportCheck[]
+  normalized_record_count: number
+  normalized_records: Array<Record<string, unknown>>
+  payload_summary: Record<string, unknown>
+  observed_at: string
+  created_at: string
+}
+
+export interface SourceImportArtifactsResponse {
+  generated_at: string
+  artifacts: SourceImportArtifactSummary[]
+}
+
+export interface SourceDataReleaseSummary {
+  id: number
+  release_key: string
+  status: 'promoted' | 'superseded' | 'rolled_back' | 'failed'
+  source_import_artifact_ids: number[]
+  run_keys: string[]
+  source_keys: string[]
+  checks: SourceImportCheck[]
+  district_profile_snapshot_count: number
+  weather_risk_snapshot_count: number
+  area_score_snapshot_count: number
+  payload_summary: Record<string, unknown>
+  operator_notes: Array<Record<string, unknown>>
+  superseded_at: string | null
+  superseded_by_release_key: string | null
+  rolled_back_at: string | null
+  observed_at: string
+  created_at: string
+}
+
+export interface SourceDataReleasesResponse {
+  generated_at: string
+  active_release_key: string | null
+  releases: SourceDataReleaseSummary[]
+}
+
+export interface SourceDataReleaseActionResponse {
+  generated_at: string
+  action: 'rollback' | 'note'
+  message: string
+  active_release_key: string | null
+  release: SourceDataReleaseSummary
+  reactivated_release: SourceDataReleaseSummary | null
+}
+
+export interface PublicSourceReleaseResponse {
+  generated_at: string
+  status: 'promoted' | 'seed_fallback'
+  active_release_key: string | null
+  observed_at: string | null
+  source_keys: string[]
+  district_profile_snapshot_count: number
+  weather_risk_snapshot_count: number
+  area_score_snapshot_count: number
+  note: string
+}
+
 export interface CostCommandItem {
   key: string
   label: string
@@ -169,6 +295,25 @@ export interface AreaScoreComponent {
   value: string
   weight: number
   confidence: Confidence
+  source_keys: string[]
+  note: string | null
+}
+
+export interface DistrictProfile {
+  key: string
+  region_id: string
+  province: string
+  population: number
+  households: number
+  area_sqkm: number
+  density_per_sqkm: number
+  center_lat: number
+  center_lng: number
+  cooking_gas_share: number
+  elderly_share: number
+  confidence: Confidence
+  source_keys: string[]
+  note: string
 }
 
 export interface AreaScoreResponse {
@@ -179,6 +324,7 @@ export interface AreaScoreResponse {
   grade: string
   confidence: Confidence
   components: AreaScoreComponent[]
+  district_profile: DistrictProfile | null
   sources: SourceReference[]
 }
 
@@ -192,6 +338,9 @@ export interface AtlasResponse {
   district_scores: AreaScoreResponse[]
   heatmap: Array<Record<string, number | string>>
   narrative: string
+  selected_profile: DistrictProfile | null
+  district_profiles: DistrictProfile[]
+  methodology: string[]
   sources: SourceReference[]
 }
 
@@ -361,4 +510,4 @@ export interface LifePulseResponse {
   unread_count: number
 }
 
-export type PageKey = 'home' | 'cost' | 'atlas' | 'intelligence' | 'sources'
+export type PageKey = 'home' | 'cost' | 'atlas' | 'intelligence' | 'sources' | 'operator'

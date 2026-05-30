@@ -1,4 +1,4 @@
-import { Bus, Car, Flame, Fuel, Gauge, Home, Landmark, PlugZap, ShoppingBasket, Store, type LucideIcon } from 'lucide-react'
+import { Bus, Car, CloudRain, Flame, Fuel, Gauge, Home, Landmark, PlugZap, ShoppingBasket, Store, type LucideIcon } from 'lucide-react'
 
 import type { DomainKey, SourceStatus } from '../types'
 
@@ -76,9 +76,43 @@ export const domainMeta: Record<
     label: 'District Life Scores',
     short: 'Districts',
   },
+  weather: {
+    accent: '#2b6d85',
+    bg: 'bg-cyan-50',
+    icon: CloudRain,
+    label: 'Weather and Risk',
+    short: 'Weather',
+  },
 }
 
-export const districts = ['Sri Lanka', 'Colombo', 'Gampaha', 'Kandy', 'Galle', 'Jaffna', 'Matara', 'Kurunegala']
+export const districts = [
+  'Sri Lanka',
+  'Colombo',
+  'Gampaha',
+  'Kalutara',
+  'Kandy',
+  'Matale',
+  'Nuwara Eliya',
+  'Galle',
+  'Matara',
+  'Hambantota',
+  'Jaffna',
+  'Mannar',
+  'Vavuniya',
+  'Mullaitivu',
+  'Kilinochchi',
+  'Batticaloa',
+  'Ampara',
+  'Trincomalee',
+  'Kurunegala',
+  'Puttalam',
+  'Anuradhapura',
+  'Polonnaruwa',
+  'Badulla',
+  'Monaragala',
+  'Ratnapura',
+  'Kegalle',
+]
 
 export const profiles = [
   { key: 'single', label: 'Single' },
@@ -111,6 +145,18 @@ export function formatLkrLocale(value: number | string | null | undefined, local
     currency: 'LKR',
     maximumFractionDigits: 0,
   }).format(number)
+}
+
+export function formatNumber(value: number | string | null | undefined, maximumFractionDigits = 0) {
+  const number = typeof value === 'string' ? Number(value) : value
+  if (number === null || number === undefined || Number.isNaN(number)) return 'N/A'
+  return new Intl.NumberFormat('en-LK', { maximumFractionDigits }).format(number)
+}
+
+export function formatPercent(value: number | string | null | undefined) {
+  const number = typeof value === 'string' ? Number(value) : value
+  if (number === null || number === undefined || Number.isNaN(number)) return 'N/A'
+  return new Intl.NumberFormat('en-LK', { maximumFractionDigits: 1, style: 'percent' }).format(number)
 }
 
 export function formatCompactLkr(value: number | string | null | undefined) {

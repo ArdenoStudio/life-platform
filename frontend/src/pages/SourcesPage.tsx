@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, DatabaseZap, ExternalLink } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, DatabaseZap, ExternalLink, GitBranch, ShieldCheck } from 'lucide-react'
 
 import { AtlasPanel } from '../components/AtlasPanel'
 import { SourcePill } from '../components/SourcePill'
 import { BackgroundBeams, BorderBeam, Spotlight } from '../components/ui/AceternityPrimitives'
 import { domainLabel, sourceTypeLabel, statusLabel, t } from '../i18n'
-import { getPipeline } from '../lib/api'
+import { getPipeline, getSourceRelease, getSourceValidation } from '../lib/api'
 import { domainMeta, formatDate, sourceTypeTone, statusTone } from '../lib/format'
-import type { DomainSignal, LocaleCode, SourceType } from '../types'
+import type { DomainSignal, LocaleCode, SourceType, SourceValidationCheck } from '../types'
 
 const sourceClasses = [
   { type: 'official', labelKey: 'sourceClassOfficial' },
@@ -16,12 +16,40 @@ const sourceClasses = [
   { type: 'derived', labelKey: 'sourceClassDerived' },
 ] as const satisfies Array<{ type: SourceType; labelKey: 'sourceClassOfficial' | 'sourceClassRetail' | 'sourceClassPlatform' | 'sourceClassDerived' }>
 
+function validationTone(status: SourceValidationCheck['status']) {
+  if (status === 'pass') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (status === 'watch') return 'border-amber-200 bg-amber-50 text-amber-800'
+  return 'border-rose-200 bg-rose-50 text-rose-800'
+}
+
+function validationLabel(status: SourceValidationCheck['status']) {
+  if (status === 'pass') return 'pass'
+  if (status === 'watch') return 'watch'
+  return 'fail'
+}
+
+function releaseTone(status?: 'promoted' | 'seed_fallback') {
+  if (status === 'promoted') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (status === 'seed_fallback') return 'border-amber-200 bg-amber-50 text-amber-800'
+  return 'border-stone-200 bg-stone-50 text-muted'
+}
+
 export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; locale: LocaleCode }) {
   const pipeline = useQuery({
     queryKey: ['life-pipeline'],
     queryFn: getPipeline,
   })
+  const validation = useQuery({
+    queryKey: ['life-source-validation'],
+    queryFn: getSourceValidation,
+  })
+  const release = useQuery({
+    queryKey: ['life-source-release'],
+    queryFn: getSourceRelease,
+  })
   const data = pipeline.data
+  const validationData = validation.data
+  const releaseData = release.data
   const sources = domains.flatMap((domain) => domain.sources)
   const uniqueSources = Array.from(new Map(sources.map((source) => [source.key, source])).values())
 
@@ -44,7 +72,92 @@ export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; loca
               <DatabaseZap className="h-4 w-4" aria-hidden="true" />
               {data ? statusLabel(locale, data.overall_status) : statusLabel(locale, 'loading')}
             </span>
+            <span className={`relative z-10 mx-3 mb-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${validationData ? statusTone(validationData.status) : 'border-white/20 bg-white/10 text-paper/70'}`}>
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              {validationData ? statusLabel(locale, validationData.status) : statusLabel(locale, 'loading')}
+            </span>
           </div>
+        </div>
+      </AtlasPanel>
+
+      <AtlasPanel>
+        <div className="flex items-center gap-2 text-emerald-800">
+          <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+          <h2 className="text-xl font-semibold">{t(locale, 'sourceValidation')}</h2>
+        </div>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{t(locale, 'sourceValidationIntro')}</p>
+        <p className="mt-3 rounded-lg border border-line bg-white/75 p-3 text-sm font-medium text-ink">
+          {validationData?.summary ?? statusLabel(locale, 'loading')}
+        </p>
+        <div className="mt-4 rounded-lg border border-line bg-white/75 p-4">
+          <div className="flex flex-wrap items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800">
+              <GitBranch className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold text-ink">{t(locale, 'activeSourceRelease')}</h3>
+                <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${releaseTone(releaseData?.status)}`}>
+                  {releaseData?.status === 'promoted' ? t(locale, 'promotedRelease') : releaseData ? t(locale, 'seedFallback') : statusLabel(locale, 'loading')}
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-5 text-muted">
+                {releaseData?.note ?? t(locale, 'sourceReleaseIntro')}
+              </p>
+            </div>
+          </div>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{t(locale, 'activeReleaseKey')}</dt>
+              <dd className="mt-1 break-all font-semibold text-ink">{releaseData?.active_release_key ?? 'reviewed seed data'}</dd>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{t(locale, 'lastUpdate')}</dt>
+              <dd className="mt-1 font-semibold text-ink">{formatDate(releaseData?.observed_at ?? releaseData?.generated_at)}</dd>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{t(locale, 'snapshotCounts')}</dt>
+              <dd className="mt-1 font-semibold text-ink">
+                {(releaseData?.district_profile_snapshot_count ?? 0).toLocaleString('en-LK')} districts /{' '}
+                {(releaseData?.weather_risk_snapshot_count ?? 0).toLocaleString('en-LK')} weather /{' '}
+                {(releaseData?.area_score_snapshot_count ?? 0).toLocaleString('en-LK')} scores
+              </dd>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{t(locale, 'sources')}</dt>
+              <dd className="mt-2 flex flex-wrap gap-1.5">
+                {(releaseData?.source_keys ?? []).slice(0, 6).map((key) => (
+                  <span key={key} className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-muted">
+                    {key}
+                  </span>
+                ))}
+                {releaseData && releaseData.source_keys.length > 6 ? (
+                  <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-muted">
+                    +{releaseData.source_keys.length - 6}
+                  </span>
+                ) : null}
+                {releaseData && releaseData.source_keys.length === 0 ? <span className="text-xs text-muted">reviewed seed data</span> : null}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {(validationData?.checks ?? []).map((check) => (
+            <article key={check.key} className="rounded-lg border border-line bg-white/75 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${validationTone(check.status)}`}>
+                  {validationLabel(check.status)}
+                </span>
+                <h3 className="font-semibold text-ink">{check.label}</h3>
+              </div>
+              <p className="mt-2 text-sm leading-5 text-muted">{check.message}</p>
+              <ul className="mt-3 space-y-1 text-xs leading-5 text-muted">
+                {check.evidence.slice(0, 3).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
         </div>
       </AtlasPanel>
 
@@ -126,9 +239,30 @@ export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; loca
             <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
             <h2 className="text-xl font-semibold">{t(locale, 'activeSourceRegistry')}</h2>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
             {uniqueSources.map((source) => (
-              <SourcePill key={source.key} locale={locale} source={source} />
+              <article key={source.key} className="rounded-lg border border-line bg-white/75 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <SourcePill locale={locale} source={source} />
+                  <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${sourceTypeTone(source.source_type)}`}>
+                    {source.review_status.replace('_', ' ')}
+                  </span>
+                  <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-muted">
+                    {source.license_status.replace('_', ' ')}
+                  </span>
+                </div>
+                <dl className="mt-3 grid gap-2 text-xs text-muted sm:grid-cols-2">
+                  <div>
+                    <dt className="font-semibold uppercase tracking-[0.12em] text-stone-500">Owner</dt>
+                    <dd className="mt-1">{source.owner}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold uppercase tracking-[0.12em] text-stone-500">Refresh</dt>
+                    <dd className="mt-1">{source.refresh_cadence}</dd>
+                  </div>
+                </dl>
+                <p className="mt-2 text-xs leading-5 text-muted">{source.governance_note}</p>
+              </article>
             ))}
           </div>
         </AtlasPanel>

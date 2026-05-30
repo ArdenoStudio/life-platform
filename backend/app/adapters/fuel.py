@@ -14,6 +14,11 @@ class FuelAdapter(DomainAdapter):
     def api_base(self) -> str:
         return self.settings.fuel_api_base.rstrip("/")
 
+    def sources(self):
+        from app.services.living_atlas_data import source_refs
+
+        return source_refs("fuel")
+
     async def fetch(self, client: httpx.AsyncClient) -> DomainSignal:
         if self.settings.life_use_fixtures:
             return self.fixture_signal()
@@ -54,6 +59,7 @@ class FuelAdapter(DomainAdapter):
                 self.highlight("Revision status", "Latest CPC fuel revision loaded" if not stale else "Fuel data may be stale", "good" if not stale else "watch", "/domains/fuel"),
             ],
             top_items=prices[:6],
+            sources=self.sources(),
         )
 
     def fixture_signal(self, *, error: str | None = None) -> DomainSignal:
@@ -81,5 +87,6 @@ class FuelAdapter(DomainAdapter):
                 {"fuel_type": "petrol_92", "price_lkr": 410, "source": "cpc"},
                 {"fuel_type": "auto_diesel", "price_lkr": 392, "source": "cpc"},
             ],
+            sources=self.sources(),
             errors=[error] if error else [],
         )

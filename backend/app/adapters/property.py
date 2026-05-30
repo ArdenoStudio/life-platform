@@ -14,6 +14,11 @@ class PropertyAdapter(DomainAdapter):
     def api_base(self) -> str:
         return self.settings.property_api_base.rstrip("/")
 
+    def sources(self):
+        from app.services.living_atlas_data import source_refs
+
+        return source_refs("property")
+
     async def fetch(self, client: httpx.AsyncClient) -> DomainSignal:
         if self.settings.life_use_fixtures:
             return self.fixture_signal()
@@ -51,6 +56,7 @@ class PropertyAdapter(DomainAdapter):
                 self.highlight("Pipeline", f"Property pipeline {overall}", "good" if status == "healthy" else "watch", "/sources"),
             ],
             top_items=[stats],
+            sources=self.sources(),
         )
 
     def fixture_signal(self, *, error: str | None = None) -> DomainSignal:
@@ -76,5 +82,6 @@ class PropertyAdapter(DomainAdapter):
             ],
             highlights=[self.highlight("Housing pressure", "Rent and sale signals dominate monthly living decisions", "watch", "/affordability")],
             top_items=[],
+            sources=self.sources(),
             errors=[error] if error else [],
         )

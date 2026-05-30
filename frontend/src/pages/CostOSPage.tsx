@@ -114,6 +114,13 @@ export function CostOSPage({
                   </div>
                   <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${sourceTypeTone(item.source_type)}`}>{sourceTypeLabel(locale, item.source_type)}</span>
                 </div>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {item.source_keys.slice(0, 4).map((key) => (
+                    <span key={`${item.key}-${key}`} className="rounded-md border border-line bg-white px-2 py-1 text-[11px] font-semibold text-muted">
+                      {key}
+                    </span>
+                  ))}
+                </div>
                 <div className="mt-4 flex items-end justify-between gap-3">
                   <span className="text-2xl font-semibold text-ink">{formatLkrLocale(item.monthly_lkr, localeTag(locale))}</span>
                   <span className="text-sm text-muted">{formatLkrLocale(item.weekly_lkr, localeTag(locale))}/{t(locale, 'week')}</span>
@@ -135,6 +142,7 @@ export function CostOSPage({
                   <span>
                     <span className="block font-semibold text-ink">{item.label}</span>
                     <span className="block text-xs text-muted">{item.note}</span>
+                    <span className="mt-1 inline-flex rounded-md border border-line bg-white px-2 py-1 text-[11px] font-semibold text-muted">{item.source_key}</span>
                   </span>
                   <span className="text-right font-semibold text-ink">{formatLkrLocale(item.amount_lkr, localeTag(locale))}</span>
                 </div>
@@ -155,6 +163,7 @@ export function CostOSPage({
                     <p className="font-semibold text-ink">{formatLkrLocale(item.fare_lkr, localeTag(locale))}</p>
                   </div>
                   <p className="mt-1 text-xs text-muted">{item.note}</p>
+                  <span className="mt-2 inline-flex rounded-md border border-line bg-white px-2 py-1 text-[11px] font-semibold text-muted">{item.source_key}</span>
                 </div>
               ))}
             </div>

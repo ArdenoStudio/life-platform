@@ -5,7 +5,7 @@ import { AtlasPanel } from '../components/AtlasPanel'
 import { SourcePill } from '../components/SourcePill'
 import { BackgroundBeams, BorderBeam, IconInput, Spotlight } from '../components/ui/AceternityPrimitives'
 import { domainLabel, statusLabel, t } from '../i18n'
-import { domainMeta, formatLkrLocale, severityTone } from '../lib/format'
+import { domainMeta, formatDate, formatLkrLocale, formatMetric, severityTone } from '../lib/format'
 import type { DomainSignal, InsightsResponse, LocaleCode, RetailOffersResponse } from '../types'
 
 export function IntelligencePage({
@@ -29,6 +29,8 @@ export function IntelligencePage({
   searchQuery: string
   setSearchQuery: Dispatch<SetStateAction<string>>
 }) {
+  const weatherDomain = domains.find((domain) => domain.key === 'weather')
+
   return (
     <div className="space-y-5">
       <section className="grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
@@ -63,9 +65,27 @@ export function IntelligencePage({
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             {insights?.insights.map((item) => (
               <article key={item.id} className={`rounded-lg border p-4 ${severityTone(item.severity)}`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">{item.domain}</p>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] opacity-80">
+                  <span>{item.domain}</span>
+                  <span className="rounded-md border border-current/20 bg-white/45 px-2 py-1">confidence: {item.confidence}</span>
+                  <time className="rounded-md border border-current/20 bg-white/45 px-2 py-1" dateTime={item.observed_at}>
+                    observed: {formatDate(item.observed_at)}
+                  </time>
+                </div>
                 <h3 className="mt-2 text-lg font-semibold">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6">{item.message}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {item.source_keys.slice(0, 6).map((key) => (
+                    <span key={`${item.id}-${key}`} className="rounded-md border border-current/20 bg-white/55 px-2 py-1 text-[11px] font-semibold">
+                      {key}
+                    </span>
+                  ))}
+                  {item.source_keys.length > 6 ? (
+                    <span className="rounded-md border border-current/20 bg-white/55 px-2 py-1 text-[11px] font-semibold">
+                      +{item.source_keys.length - 6}
+                    </span>
+                  ) : null}
+                </div>
               </article>
             ))}
           </div>
@@ -92,8 +112,22 @@ export function IntelligencePage({
         <AtlasPanel>
           <p className="atlas-label">{t(locale, 'domainMovement')}</p>
           <h2 className="mt-1 text-2xl font-semibold text-ink">{t(locale, 'fastestPublicSignals')}</h2>
+          {weatherDomain ? (
+            <div className="mt-5 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-cyan-950">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">Weather and risk watch</p>
+              <p className="mt-2 font-semibold">{weatherDomain.highlights[0]?.value}</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {weatherDomain.metrics.slice(0, 4).map((metric) => (
+                  <div key={metric.label} className="rounded-lg border border-cyan-200 bg-white/70 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] opacity-70">{metric.label}</p>
+                    <p className="mt-1 text-lg font-semibold">{formatMetric(metric.value, metric.unit)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {domains.slice(0, 10).map((domain) => {
+            {domains.filter((domain) => domain.key !== 'weather').slice(0, 10).map((domain) => {
               const meta = domainMeta[domain.key]
               const Icon = meta.icon
               return (

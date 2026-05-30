@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-DomainKey = Literal["food", "fuel", "property", "vehicle", "utilities", "gas", "transport", "retail", "indices", "areas"]
+DomainKey = Literal["food", "fuel", "property", "vehicle", "utilities", "gas", "transport", "retail", "indices", "areas", "weather"]
 SourceStatus = Literal["healthy", "degraded", "offline"]
 SourceType = Literal["official", "retail", "platform", "derived"]
 Confidence = Literal["high", "medium", "low"]
@@ -17,8 +17,197 @@ class SourceReference(BaseModel):
     url: str
     confidence: Confidence
     freshness_note: str
+    owner: str
+    collection_method: str
+    license_status: Literal["official_public", "permissive", "terms_review", "internal_platform", "needs_review"]
+    review_status: Literal["approved", "reviewed", "candidate", "needs_review"]
+    refresh_cadence: str
+    governance_note: str
     last_checked_at: datetime | None = None
     labels: dict[str, str] = Field(default_factory=dict)
+
+
+class SourceValidationCheck(BaseModel):
+    key: str
+    label: str
+    status: Literal["pass", "watch", "fail"]
+    message: str
+    evidence: list[str] = Field(default_factory=list)
+    source_keys: list[str] = Field(default_factory=list)
+
+
+class SourceValidationResponse(BaseModel):
+    generated_at: datetime
+    status: SourceStatus
+    summary: str
+    checks: list[SourceValidationCheck]
+    sources: list[SourceReference]
+
+
+class SourceImportCheck(BaseModel):
+    key: str
+    label: str
+    status: Literal["pass", "watch", "fail"]
+    message: str
+    evidence: list[str] = Field(default_factory=list)
+
+
+class SourceImportRun(BaseModel):
+    key: str
+    label: str
+    domain_key: DomainKey
+    status: Literal["pass", "watch", "fail"]
+    rows_checked: int
+    accepted_for_scoring: bool
+    source_keys: list[str]
+    storage_target: str
+    collection_method: str
+    action: str
+    checks: list[SourceImportCheck]
+
+
+class SourceImportAuditResponse(BaseModel):
+    generated_at: datetime
+    status: SourceStatus
+    summary: str
+    importers: list[SourceImportRun]
+    sources: list[SourceReference]
+
+
+class SourceImportEndpoint(BaseModel):
+    key: str
+    label: str
+    source_key: str | None = None
+    url: str
+    method: str
+    required: bool = True
+    status: Literal["ready", "watch", "blocked"]
+    note: str
+
+
+class SourceImportManifest(BaseModel):
+    key: str
+    label: str
+    domain_key: DomainKey
+    status: Literal["pass", "watch", "fail"]
+    promotion_status: Literal["seed_audited", "direct_ready", "needs_parser", "blocked_by_terms", "candidate"]
+    accepted_for_direct_run: bool
+    source_keys: list[str]
+    retrieval_mode: str
+    parser_contract: str
+    storage_target: str
+    refresh_cadence: str
+    next_action: str
+    endpoints: list[SourceImportEndpoint]
+    checks: list[SourceImportCheck]
+
+
+class SourceImportPlanResponse(BaseModel):
+    generated_at: datetime
+    status: SourceStatus
+    summary: str
+    manifests: list[SourceImportManifest]
+    sources: list[SourceReference]
+
+
+class SourceImportExecutionRun(BaseModel):
+    key: str
+    label: str
+    domain_key: DomainKey
+    status: Literal["pass", "watch", "fail"]
+    mode: Literal["offline_contract", "live_fetch"]
+    rows_imported: int
+    accepted_for_scoring: bool
+    source_keys: list[str]
+    fetched_urls: list[str]
+    storage_target: str
+    action: str
+    normalized_records: list[dict[str, Any]] = Field(default_factory=list)
+    promoted_records: int = 0
+    promotion_note: str | None = None
+    checks: list[SourceImportCheck]
+
+
+class SourceImportExecutionResponse(BaseModel):
+    generated_at: datetime
+    status: SourceStatus
+    summary: str
+    runs: list[SourceImportExecutionRun]
+    sources: list[SourceReference]
+
+
+class SourceImportArtifactSummary(BaseModel):
+    id: int
+    run_key: str
+    domain_key: DomainKey
+    status: Literal["pass", "watch", "fail"]
+    mode: Literal["offline_contract", "live_fetch"]
+    accepted_for_scoring: bool
+    rows_imported: int
+    source_keys: list[str]
+    checks: list[SourceImportCheck]
+    normalized_record_count: int
+    normalized_records: list[dict[str, Any]] = Field(default_factory=list)
+    payload_summary: dict[str, Any]
+    observed_at: datetime
+    created_at: datetime
+
+
+class SourceImportArtifactsResponse(BaseModel):
+    generated_at: datetime
+    artifacts: list[SourceImportArtifactSummary]
+
+
+class SourceDataReleaseSummary(BaseModel):
+    id: int
+    release_key: str
+    status: Literal["promoted", "superseded", "rolled_back", "failed"]
+    source_import_artifact_ids: list[int]
+    run_keys: list[str]
+    source_keys: list[str]
+    checks: list[SourceImportCheck]
+    district_profile_snapshot_count: int
+    weather_risk_snapshot_count: int
+    area_score_snapshot_count: int
+    payload_summary: dict[str, Any]
+    operator_notes: list[dict[str, Any]] = Field(default_factory=list)
+    superseded_at: datetime | None = None
+    superseded_by_release_key: str | None = None
+    rolled_back_at: datetime | None = None
+    observed_at: datetime
+    created_at: datetime
+
+
+class SourceDataReleasesResponse(BaseModel):
+    generated_at: datetime
+    active_release_key: str | None = None
+    releases: list[SourceDataReleaseSummary]
+
+
+class SourceDataReleaseActionRequest(BaseModel):
+    note: str | None = Field(default=None, max_length=500)
+    reactivate_previous: bool = True
+
+
+class SourceDataReleaseActionResponse(BaseModel):
+    generated_at: datetime
+    action: Literal["rollback", "note"]
+    message: str
+    active_release_key: str | None = None
+    release: SourceDataReleaseSummary
+    reactivated_release: SourceDataReleaseSummary | None = None
+
+
+class PublicSourceReleaseResponse(BaseModel):
+    generated_at: datetime
+    status: Literal["promoted", "seed_fallback"]
+    active_release_key: str | None = None
+    observed_at: datetime | None = None
+    source_keys: list[str] = Field(default_factory=list)
+    district_profile_snapshot_count: int = 0
+    weather_risk_snapshot_count: int = 0
+    area_score_snapshot_count: int = 0
+    note: str
 
 
 class DomainMetric(BaseModel):
@@ -142,6 +331,25 @@ class AreaScoreComponent(BaseModel):
     value: str
     weight: float
     confidence: Confidence
+    source_keys: list[str] = Field(default_factory=list)
+    note: str | None = None
+
+
+class DistrictProfile(BaseModel):
+    key: str
+    region_id: str
+    province: str
+    population: int
+    households: int
+    area_sqkm: float
+    density_per_sqkm: float
+    center_lat: float
+    center_lng: float
+    cooking_gas_share: float
+    elderly_share: float
+    confidence: Confidence
+    source_keys: list[str]
+    note: str
 
 
 class AreaScoreResponse(BaseModel):
@@ -152,6 +360,7 @@ class AreaScoreResponse(BaseModel):
     grade: str
     confidence: Confidence
     components: list[AreaScoreComponent]
+    district_profile: DistrictProfile | None = None
     sources: list[SourceReference]
 
 
@@ -165,6 +374,9 @@ class AtlasResponse(BaseModel):
     district_scores: list[AreaScoreResponse]
     heatmap: list[dict]
     narrative: str
+    selected_profile: DistrictProfile | None = None
+    district_profiles: list[DistrictProfile] = Field(default_factory=list)
+    methodology: list[str] = Field(default_factory=list)
     sources: list[SourceReference]
 
 
@@ -215,6 +427,31 @@ class RetailOffer(BaseModel):
     source_type: SourceType = "retail"
     confidence: Confidence
     note: str
+
+
+class WeatherRiskObservation(BaseModel):
+    district: str
+    station_id: str
+    station_name: str
+    observed_at: datetime
+    rainfall_mm: float
+    temperature_c: float
+    humidity_percent: float
+    risk_score: float = Field(ge=0, le=100)
+    severity: Literal["good", "watch", "risk", "neutral"]
+    coverage: Literal["direct", "proxy", "national"]
+    confidence: Confidence
+    source_keys: list[str]
+    note: str
+
+
+class WeatherRiskResponse(BaseModel):
+    generated_at: datetime
+    district: str
+    selected: WeatherRiskObservation
+    observations: list[WeatherRiskObservation]
+    methodology: list[str]
+    sources: list[SourceReference]
 
 
 class RetailOffersResponse(BaseModel):
@@ -358,3 +595,17 @@ class AlertEvaluationResponse(BaseModel):
     users_checked: int
     alerts_checked: int
     notifications_created: int
+
+
+class SourceRefreshResponse(BaseModel):
+    generated_at: datetime
+    refresh_status: SourceStatus
+    domains_refreshed: int
+    degraded_domains: list[str]
+    offline_domains: list[str]
+    pipeline: PipelineResponse
+    source_validation: SourceValidationResponse
+    import_audit: SourceImportAuditResponse
+    import_plan: SourceImportPlanResponse
+    alert_evaluation: AlertEvaluationResponse | None = None
+    actions: list[str]
