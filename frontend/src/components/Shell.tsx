@@ -78,7 +78,7 @@ export function Shell({
   user: LifeAuthUser | null
 }) {
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="min-h-screen overflow-x-clip">
       <header className="floating-shell">
         <div className="mx-auto w-full max-w-[1480px] px-3 py-3 lg:px-6">
           <FloatingSurface className="flex flex-col gap-3 px-3 py-3">
@@ -97,14 +97,15 @@ export function Shell({
                 </span>
               </button>
 
-              <nav className="flex min-w-0 flex-1 flex-wrap gap-1 lg:flex-nowrap lg:justify-center lg:overflow-x-auto" aria-label="Primary">
+              <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto lg:flex-wrap lg:justify-center lg:overflow-visible" aria-label="Primary">
                 {navItems.map((item) => {
                   const Icon = item.icon
                   const active = activePage === item.key
                   return (
                     <button
                       key={item.key}
-                      className={`nav-button ${active ? 'active' : ''}`}
+                      aria-current={active ? 'page' : undefined}
+                      className={`nav-button min-h-11 ${active ? 'active' : ''}`}
                       onClick={() => setActivePage(item.key)}
                       onFocus={() => preloadPage?.(item.key)}
                       onMouseEnter={() => preloadPage?.(item.key)}
@@ -122,7 +123,7 @@ export function Shell({
                   <Map className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <select
                     aria-label={t(locale, 'homeDistrict')}
-                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-paper outline-none"
+                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-paper outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
                     onChange={(event) => setDistrict(event.target.value)}
                     value={district}
                   >
@@ -136,7 +137,7 @@ export function Shell({
                 <label className="relative flex h-10 min-w-[8rem] items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 text-xs font-semibold text-paper">
                   <select
                     aria-label={t(locale, 'profile')}
-                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-paper outline-none"
+                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-paper outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
                     onChange={(event) => setProfile(event.target.value as Profile)}
                     value={profile}
                   >
@@ -151,7 +152,7 @@ export function Shell({
                   <Globe2 className="h-4 w-4" aria-hidden="true" />
                   <select
                     aria-label={t(locale, 'locale')}
-                    className="h-full flex-1 bg-transparent text-sm text-paper outline-none"
+                    className="h-full flex-1 bg-transparent text-sm text-paper outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
                     onChange={(event) => setLocale(event.target.value as LocaleCode)}
                     value={locale}
                   >
@@ -165,7 +166,8 @@ export function Shell({
                 {authConfigured ? (
                   user ? (
                     <button
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-bold text-paper hover:bg-white/15"
+                      aria-label={unreadCount > 0 ? `${t(locale, 'signOut')} (${unreadCount} ${t(locale, 'unreadNotifications')})` : t(locale, 'signOut')}
+                      className="inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-bold text-paper hover:bg-white/15"
                       onClick={() => void signOut()}
                       title={user.email ?? user.displayName ?? t(locale, 'signOut')}
                       type="button"

@@ -1,10 +1,10 @@
 import { ArrowUpRight, Database, ExternalLink } from 'lucide-react'
 
 import { domainMeta, formatDate, formatMetric, severityTone } from '../lib/format'
-import type { DomainSignal } from '../types'
+import type { DomainSignal, LocaleCode } from '../types'
 import { StatusBadge } from './StatusBadge'
 
-export function DomainPanel({ domain }: { domain: DomainSignal }) {
+export function DomainPanel({ domain, locale = 'en' }: { domain: DomainSignal; locale?: LocaleCode }) {
   const meta = domainMeta[domain.key]
   const Icon = meta.icon
 
@@ -21,7 +21,7 @@ export function DomainPanel({ domain }: { domain: DomainSignal }) {
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{domain.summary}</p>
           </div>
         </div>
-        <StatusBadge status={domain.status} />
+        <StatusBadge locale={locale} status={domain.status} />
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

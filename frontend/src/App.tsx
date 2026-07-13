@@ -148,6 +148,10 @@ function AppContent() {
       : locale
 
   useEffect(() => {
+    document.documentElement.lang = activeLocale === 'si' ? 'si' : activeLocale === 'ta' ? 'ta' : 'en'
+  }, [activeLocale])
+
+  useEffect(() => {
     const from = previousDistrictRef.current
     if (from !== activeDistrict) {
       trackEvent('pulse.district_change', { auth: Boolean(auth.user), from, to: activeDistrict })

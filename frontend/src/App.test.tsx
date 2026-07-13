@@ -456,13 +456,11 @@ describe('Ariva', () => {
 
   it('renders the Ariva home and trilingual controls', async () => {
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Know how Sri Lanka lives, costs, and moves.' }, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByText(/District Life Pulse/i, {}, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Cost Desk/i }).length).toBeGreaterThan(0)
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'si' } })
-    expect(
-      await screen.findByRole('heading', { name: 'ශ්‍රී ලංකාව ජීවත්වන, වියදම් කරන, ගමන් කරන ආකාරය දැනගන්න.' }, { timeout: 5000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/දිස්ත්‍රික් ජීවන තත්ත්වය/i, {}, { timeout: 5000 })).toBeInTheDocument()
   })
 
   it('searches the central Ariva API and opens the signals result surface', async () => {

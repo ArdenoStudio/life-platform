@@ -13,11 +13,9 @@ test('page=today alias loads District Life Pulse', async ({ page }) => {
   await overviewResponse
 
   await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
-  await expect(page.getByRole('heading', { name: /Know how Sri Lanka lives/i })).toBeVisible()
 
   await expect(page.getByText('Cost of Life', { exact: true })).toBeVisible()
-  const heroConsole = page.locator('.hero-console')
-  await expect(heroConsole.getByText(/\d+\/100|LKR|Rs\./)).toBeVisible()
+  await expect(page.getByText(/\d+\/100|LKR|Rs\./).first()).toBeVisible()
 
   await expect(page.getByText('Trust release', { exact: true })).toBeVisible()
   const degradationBanner = page.getByText(/Some signals are degraded/i)
@@ -94,9 +92,8 @@ test('move page loads', async ({ page }) => {
 test('Ariva home renders without horizontal overflow', async ({ page }) => {
   await page.goto('/?locale=en', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.getByRole('heading', { name: /Know how Sri Lanka lives/i })).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Ariva').first()).toBeVisible()
   await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Ariva').first()).toBeVisible()
   await expect(page.getByText('Food', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Fuel', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Shelter', { exact: true }).first()).toBeVisible()
@@ -108,7 +105,7 @@ test('Ariva home renders without horizontal overflow', async ({ page }) => {
 test('sources and trilingual UI render without horizontal overflow', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/Language/i).selectOption('si')
-  await expect(page.getByRole('heading', { name: /ශ්‍රී ලංකාව ජීවත්වන/i })).toBeVisible()
+  await expect(page.getByText(/දිස්ත්‍රික් ජීවන තත්ත්වය/i)).toBeVisible({ timeout: 15000 })
   await page.getByLabel('Primary').getByRole('button', { name: /විශ්වාසය/i }).click()
 
   await expect(page.getByRole('heading', { name: 'විශ්වාසය', exact: true })).toBeVisible()

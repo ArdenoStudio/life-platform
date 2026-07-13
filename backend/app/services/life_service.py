@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Literal
 
@@ -329,7 +330,9 @@ class LifeService:
         self.ensure_sources(db)
         timeout = httpx.Timeout(self.settings.upstream_timeout_seconds)
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-            signals = [await self._fetch_adapter(adapter, client, db) for adapter in self.adapters]
+            signals = list(
+                await asyncio.gather(*(self._fetch_adapter(adapter, client, db) for adapter in self.adapters))
+            )
 
         self._cache[cache_key] = (now, signals)
         self.store_domain_snapshots(db, signals)
