@@ -1,10 +1,9 @@
-import { ExternalLink } from 'lucide-react'
-
-import { domainLabel, sourceTypeLabel, t, type I18nKey } from '../i18n'
-import { trackEvent } from '../lib/analytics'
-import { addArivaUtm } from '../lib/deepLink'
-import { domainMeta, formatMetric, sourceTypeTone } from '../lib/format'
+import { domainLabel, t, type I18nKey } from '../i18n'
+import { domainMeta, formatMetric } from '../lib/format'
 import type { Confidence, DomainSignal, LocaleCode, SourceType } from '../types'
+import { DeepLinkButton } from './DeepLinkButton'
+import { FreshnessLabel } from './FreshnessLabel'
+import { SourceClassPill } from './SourceClassPill'
 import { StatusBadge } from './StatusBadge'
 
 type SisterKickerKey = Extract<I18nKey, 'sisterFood' | 'sisterFuel' | 'sisterShelter'>
@@ -24,7 +23,6 @@ export function SisterSignalCard({
   const sourceClass: SourceType = primarySource?.source_type ?? 'platform'
   const confidence: Confidence = primarySource?.confidence ?? 'medium'
   const topMetric = domain.metrics[0]
-  const platformUrl = addArivaUtm(domain.homepage_url)
 
   return (
     <article className="rounded-lg border border-line bg-white p-4 shadow-panel">
@@ -50,25 +48,14 @@ export function SisterSignalCard({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold">
-        <span className={`rounded-md border px-2 py-1 ${sourceTypeTone(sourceClass)}`}>{sourceTypeLabel(locale, sourceClass)}</span>
+        <SourceClassPill locale={locale} sourceType={sourceClass} />
         <span className="rounded-md border border-line bg-stone-50 px-2 py-1 text-muted">
           {t(locale, 'compareConfidence').replace('{confidence}', confidence)}
         </span>
-        <span className="rounded-md border border-line bg-stone-50 px-2 py-1 text-muted" title={domain.freshness_note}>
-          {domain.freshness_note}
-        </span>
+        <FreshnessLabel freshnessNote={domain.freshness_note} observedAt={domain.observed_at} />
       </div>
 
-      <a
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-leaf hover:text-leaf/80"
-        href={platformUrl}
-        onClick={() => trackEvent('pulse.deep_link_click', { platform: domain.label, sister: domain.key })}
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        {t(locale, 'viewOnPlatform').replace('{platform}', domain.label)}
-        <ExternalLink className="h-4 w-4" aria-hidden="true" />
-      </a>
+      <DeepLinkButton href={domain.homepage_url} locale={locale} platform={domain.label} sister={domain.key} />
     </article>
   )
 }

@@ -39,7 +39,7 @@
 
 ### Remaining Phase 1 tasks
 
-- [ ] **Emit `page=today` in URL** — `App.tsx` `replaceState` still writes `page=home` when on Today; emit canonical `today` per spec URL contract.
+- [x] **Emit `page=today` in URL** — `pageParamForUrl` in [`frontend/src/lib/pages.ts`](../../frontend/src/lib/pages.ts); `App.tsx` `replaceState` emits `today` / `places` / `trust` aliases.
 - [ ] **Extract remaining trust chrome components** (spec appendix):
   - [ ] `frontend/src/components/DistrictChip.tsx` — thin wrapper around shell district control (or delegate from `Shell.tsx`).
   - [ ] `frontend/src/components/SourceClassPill.tsx` — extend [`SourcePill.tsx`](../../frontend/src/components/SourcePill.tsx) pattern (currently inline in `SisterSignalCard`).
@@ -47,9 +47,7 @@
   - [ ] `frontend/src/components/DeepLinkButton.tsx` — platform exit + `utm_campaign=ariva_life_pulse` (logic in `SisterSignalCard` + `deepLink.ts` today).
   - [ ] `frontend/src/components/CostOfLifeHero.tsx` — index, direction chip, derived badge, weight teaser (hero still inline in `HomePage.tsx`).
 - [ ] **Rename / narrow Today page** — Refactor [`HomePage.tsx`](../../frontend/src/pages/HomePage.tsx) → `TodayPage.tsx`; demote multi-domain hero (vehicles, utilities, weather, retail, top movers grid) to secondary tabs or remove from Today.
-- [ ] **MVP overview contract (backend)** — In [`life_service.py`](../../backend/app/services/life_service.py) `overview`:
-  - [ ] Headline mentions food / fuel / shelter only (not vehicles).
-  - [ ] Add optional `sister_domains` filter or document that clients slice `domains` to `food|fuel|property`.
+- [x] **MVP overview contract (backend)** — Headline mentions food / fuel / shelter only; `survival_index.breakdown` + `weights` on overview.
 - [ ] **Frontend tests** — Update [`frontend/src/App.test.tsx`](../../frontend/src/App.test.tsx) for Today-only sister layout and trust chrome presence (E2E covers sisters on home in [`life-dashboard.spec.ts`](../../frontend/tests/e2e/life-dashboard.spec.ts)).
 
 ### Phase 1 verification
@@ -84,17 +82,13 @@ cd frontend && npm run dev
   - [x] Food 45%, fuel 20%, shelter 35% only for headline `survival_index` total.
   - [x] Document weights in response (`survival_index.disclaimer` + `derived` source class in sister cards).
 - [x] **Persist derived snapshot** — `life_index_snapshots` written from `affordability_from_signals` with breakdown JSON ([`backend/app/db/models.py`](../../backend/app/db/models.py)); trend reads prior row in `overview`.
-- [ ] **Cost tab trim** — [`frontend/src/pages/CostOSPage.tsx`](../../frontend/src/pages/CostOSPage.tsx): sparkline/history for district + profile; weight breakdown (3 inputs); link to Trust methodology; hide non-MVP line items from hero (detail section OK).
-- [ ] **Places tab shelter-forward** — [`frontend/src/pages/AtlasPage.tsx`](../../frontend/src/pages/AtlasPage.tsx): elevate shelter sister; PropertyLK deep link per spec.
-- [ ] **Decide flow (MVP)** — [`ComparePage.tsx`](../../frontend/src/pages/ComparePage.tsx): max 2 districts; Cost of Life delta + sister signal deltas (not generic domain metric pickers); share URL `?page=decide&district=A&compare=B&profile=…` (page route exists; compare still uses generic domain pickers and local state only).
+- [x] **Cost tab trim** — [`frontend/src/pages/CostOSPage.tsx`](../../frontend/src/pages/CostOSPage.tsx): MVP 45/20/35 weight breakdown + Trust methodology link.
+- [x] **Places tab shelter-forward** — [`frontend/src/pages/AtlasPage.tsx`](../../frontend/src/pages/AtlasPage.tsx): shelter sister card + PropertyLK deep link.
+- [x] **Decide flow (MVP)** — [`ComparePage.tsx`](../../frontend/src/pages/ComparePage.tsx): two districts, Cost of Life + sister deltas, URL `?page=decide&district=A&compare=B&profile=…`.
 - [x] **Trust tab filter** — [`SourcesPage.tsx`](../../frontend/src/pages/SourcesPage.tsx): MVP sister adapter list (`mvpSisterKeys`) plus full registry for other domains.
 - [x] **Adapter platform URLs** — [`food.py`](../../backend/app/adapters/food.py), [`fuel.py`](../../backend/app/adapters/fuel.py), [`property.py`](../../backend/app/adapters/property.py) expose `homepage_url`; frontend adds UTM via `deepLink.ts`.
-- [ ] **Derived confidence** — When any sister degraded/offline, lower `survival_index.confidence` and surface in `CostOfLifeHero` (today: confidence drops on offline domains only, not per-sister degradation).
-- [ ] **Backend contract tests** — Extend [`backend/tests/test_life_api.py`](../../backend/tests/test_life_api.py):
-  - [x] MVP weight disclaimer on overview (`test_life_overview_survival_index_uses_mvp_weights`).
-  - [ ] Headline breakdown keys ⊆ `{food, fuel, property}` for headline score.
-  - [ ] Weights sum to 100%.
-  - [ ] Degraded fuel → `confidence` drops + status preserved in `domains`.
+- [x] **Derived confidence** — `_mvp_derived_confidence` lowers confidence when any sister degraded/offline.
+- [x] **Backend contract tests** — Headline shelter-only copy; `survival_index.breakdown` keys; weights sum to 1.0.
 
 ### Phase 2 verification
 

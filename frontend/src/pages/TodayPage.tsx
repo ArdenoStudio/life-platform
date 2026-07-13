@@ -1,14 +1,15 @@
-import { ArrowRight, Bell, Bookmark, DatabaseZap, RefreshCcw, Save, ShieldCheck, WalletCards } from 'lucide-react'
+import { ArrowRight, Bell, Bookmark, DatabaseZap, RefreshCcw, Save, ShieldCheck } from 'lucide-react'
 import { useEffect, type Dispatch, type SetStateAction } from 'react'
 
 import { BrandMark } from '../components/BrandMark'
+import { CostOfLifeHero } from '../components/CostOfLifeHero'
 import { MetricTile } from '../components/MetricTile'
 import { SisterSignalCard } from '../components/SisterSignalCard'
 import { TrustStrip } from '../components/TrustStrip'
 import { BackgroundBeams, BentoCard, BentoGrid, BorderBeam, DataRail, MetricDeck, ShimmerButton, ShimmerText, SignalMap, Spotlight } from '../components/ui/AceternityPrimitives'
 import { profileLabel, statusLabel, t } from '../i18n'
 import { trackEvent } from '../lib/analytics'
-import { districts, formatLkrLocale, profiles, severityTone } from '../lib/format'
+import { districts, profiles, severityTone } from '../lib/format'
 import type { LifeOverviewResponse, LifePulseResponse, LocaleCode, PageKey, Profile, PublicSourceReleaseResponse } from '../types'
 
 const sisterDomainKeys = [
@@ -84,7 +85,6 @@ export function TodayPage({
     )
   }
 
-  const lkrLocale = locale === 'en' ? 'en-LK' : locale
   const survivalIndex = overview.survival_index
 
   return (
@@ -165,28 +165,7 @@ export function TodayPage({
             </div>
             <div className="mt-4 grid gap-3 lg:grid-cols-[0.92fr_1.08fr]">
               <div className="grid gap-3">
-                <MetricTile
-                  icon={WalletCards}
-                  label={survivalIndex.label}
-                  note={`${survivalIndex.district} / ${profileLabel(locale, survivalIndex.profile)}`}
-                  tone="gold"
-                  value={
-                    survivalIndex.index_score != null
-                      ? `${Math.round(survivalIndex.index_score)}/100`
-                      : formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)
-                  }
-                />
-                <MetricTile
-                  icon={WalletCards}
-                  label={t(locale, 'dailyTotal')}
-                  note={
-                    survivalIndex.index_score != null
-                      ? `${t(locale, 'monthlyPressureCurve')}: ${formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)} · ${survivalIndex.trend ?? 'flat'}`
-                      : survivalIndex.disclaimer
-                  }
-                  tone="blue"
-                  value={formatLkrLocale(survivalIndex.daily_lkr, lkrLocale)}
-                />
+                <CostOfLifeHero locale={locale} survivalIndex={survivalIndex} />
                 <MetricTile
                   icon={DatabaseZap}
                   label={t(locale, 'sourceHealth')}

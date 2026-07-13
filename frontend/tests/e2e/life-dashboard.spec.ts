@@ -5,19 +5,55 @@ async function hasHorizontalOverflow(page: import('@playwright/test').Page) {
 }
 
 test('page=today alias loads District Life Pulse', async ({ page }) => {
+  const overviewResponse = page.waitForResponse(
+    (response) => response.url().includes('/life/overview') && response.status() === 200,
+    { timeout: 20000 },
+  )
   await page.goto('/?page=today&locale=en', { waitUntil: 'domcontentloaded' })
+  await overviewResponse
 
   await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
   await expect(page.getByRole('heading', { name: /Know how Sri Lanka lives/i })).toBeVisible()
+
+  await expect(page.getByText('Cost of Life', { exact: true })).toBeVisible()
+  const heroConsole = page.locator('.hero-console')
+  await expect(heroConsole.getByText(/\d+\/100|LKR|Rs\./)).toBeVisible()
+
+  await expect(page.getByText('Trust release', { exact: true })).toBeVisible()
+  const degradationBanner = page.getByText(/Some signals are degraded/i)
+  const trustReleaseBadge = page.getByText(/Promoted release|Seed fallback/i).first()
+  await expect(degradationBanner.or(trustReleaseBadge)).toBeVisible()
+
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
 
 test('district change updates URL', async ({ page }) => {
-  await page.goto('/?locale=en', { waitUntil: 'domcontentloaded' })
+  await page.goto('/?page=today&locale=en', { waitUntil: 'domcontentloaded' })
   await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
 
   await page.getByLabel('Home district').selectOption('Kandy')
+  await expect.poll(() => page.url()).toMatch(/page=today/)
   await expect.poll(() => page.url()).toContain('district=Kandy')
+})
+
+test('sister view-on-platform deep link carries Ariva UTM', async ({ page }) => {
+  const overviewResponse = page.waitForResponse(
+    (response) => response.url().includes('/life/overview') && response.status() === 200,
+    { timeout: 20000 },
+  )
+  await page.goto('/?page=today&locale=en', { waitUntil: 'domcontentloaded' })
+  await overviewResponse
+
+  const platformLink = page.getByRole('link', { name: /View on/i }).first()
+  await expect(platformLink).toBeVisible({ timeout: 15000 })
+  await expect(platformLink).toHaveAttribute('href', /utm_source=ariva_life_pulse/)
+
+  const popupPromise = page.waitForEvent('popup', { timeout: 5000 }).catch(() => null)
+  await platformLink.click()
+  const popup = await popupPromise
+  if (popup) {
+    await popup.close()
+  }
 })
 
 test('decide page loads with compare params', async ({ page }) => {
@@ -33,6 +69,12 @@ test('decide page loads with compare params', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Cost comparison', exact: true })).toBeVisible({ timeout: 15000 })
   await expect(page.getByLabel('Left district')).toHaveValue('Colombo')
   await expect(page.getByLabel('Right district')).toHaveValue('Kandy')
+
+  const compareTable = page.getByRole('table')
+  for (const rowLabel of ['Food', 'Fuel', 'Shelter'] as const) {
+    await expect(compareTable.getByText(rowLabel, { exact: true })).toBeVisible()
+  }
+
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
 
