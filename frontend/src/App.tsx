@@ -28,7 +28,7 @@ import { districts, readStoredHomeDistrict, writeStoredHomeDistrict } from './li
 import { pageParamForUrl, resolvePage, validPages, type PageParam } from './lib/pages'
 import type { LocaleCode, PageKey, Profile } from './types'
 
-const loadHomePage = () => import('./pages/HomePage')
+const loadTodayPage = () => import('./pages/TodayPage')
 const loadCostOSPage = () => import('./pages/CostOSPage')
 const loadAtlasPage = () => import('./pages/AtlasPage')
 const loadIntelligencePage = () => import('./pages/IntelligencePage')
@@ -37,7 +37,7 @@ const loadOperatorPage = () => import('./pages/OperatorPage')
 const loadMovePage = () => import('./pages/MovePage')
 const loadComparePage = () => import('./pages/ComparePage')
 
-const HomePage = lazy(() => loadHomePage().then(({ HomePage }) => ({ default: HomePage })))
+const TodayPage = lazy(() => loadTodayPage().then(({ TodayPage }) => ({ default: TodayPage })))
 const CostOSPage = lazy(() => loadCostOSPage().then(({ CostOSPage }) => ({ default: CostOSPage })))
 const AtlasPage = lazy(() => loadAtlasPage().then(({ AtlasPage }) => ({ default: AtlasPage })))
 const IntelligencePage = lazy(() => loadIntelligencePage().then(({ IntelligencePage }) => ({ default: IntelligencePage })))
@@ -50,7 +50,7 @@ const pagePreloaders: Record<PageKey, () => Promise<unknown>> = {
   atlas: loadAtlasPage,
   cost: loadCostOSPage,
   decide: loadComparePage,
-  home: loadHomePage,
+  home: loadTodayPage,
   intelligence: loadIntelligencePage,
   move: loadMovePage,
   operator: loadOperatorPage,
@@ -311,7 +311,7 @@ function AppContent() {
         }
       >
         {activePage === 'home' ? (
-          <HomePage
+          <TodayPage
             district={activeDistrict}
             isLoading={overviewQuery.isLoading}
             lifePulse={lifePulseQuery.data}

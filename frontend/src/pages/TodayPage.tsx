@@ -29,7 +29,7 @@ function releaseBadgeLabel(locale: LocaleCode, sourceRelease: PublicSourceReleas
   return statusLabel(locale, 'loading')
 }
 
-export function HomePage({
+export function TodayPage({
   district,
   isLoading,
   lifePulse,
@@ -292,3 +292,6 @@ export function HomePage({
     </div>
   )
 }
+
+/** @deprecated Use TodayPage */
+export const HomePage = TodayPage
