@@ -72,8 +72,37 @@ const domains: DomainSignal[] = [
   domain('areas', 'District Life Scores', 68),
 ]
 
+const overviewGeneratedAt = '2026-05-21T06:10:00Z'
+
+const affordability = {
+  district: 'Sri Lanka',
+  profile: 'family' as const,
+  total_monthly_lkr: 192000,
+  confidence: 'medium' as const,
+  generated_at: overviewGeneratedAt,
+  breakdown: [
+    { key: 'food', label: 'Food and groceries', monthly_lkr: 86400, confidence: 'medium' as const, source_domains: ['food'], note: 'FoodLK basket.' },
+    { key: 'fuel', label: 'Fuel planning', monthly_lkr: 38400, confidence: 'medium' as const, source_domains: ['fuel'], note: 'Fuel proxy.' },
+    { key: 'property', label: 'Shelter', monthly_lkr: 67200, confidence: 'medium' as const, source_domains: ['property'], note: 'Shelter proxy.' },
+  ],
+  assumptions: ['MVP Cost of Life uses food (45%), fuel (20%), and shelter (35%) planning weights.'],
+}
+
+function affordabilityForDistrict(district: string) {
+  const scale = district === 'Kandy' ? 0.9 : district === 'Colombo' ? 1.08 : 1
+  return {
+    ...affordability,
+    district,
+    total_monthly_lkr: Math.round(affordability.total_monthly_lkr * scale),
+    breakdown: affordability.breakdown.map((item) => ({
+      ...item,
+      monthly_lkr: Math.round(item.monthly_lkr * scale),
+    })),
+  }
+}
+
 const overview: LifeOverviewResponse = {
-  generated_at: '2026-05-21T06:10:00Z',
+  generated_at: overviewGeneratedAt,
   headline: 'Ariva reads Sri Lanka living signals across food, fuel, property, vehicles, and daily costs.',
   freshness_note: 'Live-powered summaries with short caching.',
   domains,
@@ -388,6 +417,11 @@ describe('Ariva', () => {
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
         const url = String(input)
+        if (url.includes('/life/affordability')) {
+          const parsed = new URL(url, 'http://test.local')
+          const district = parsed.searchParams.get('district') ?? 'Sri Lanka'
+          return jsonResponse(affordabilityForDistrict(district))
+        }
         if (url.includes('/life/overview')) return jsonResponse(overview)
         if (url.includes('/life/domains')) return jsonResponse({ items: domains })
         if (url.includes('/life/search')) return jsonResponse([{ domain: 'fuel', label: 'Octane: Petrol 92', description: '410 LKR/litre', href: '/domains/fuel', score: 80 }])
@@ -477,6 +511,18 @@ describe('Ariva', () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/me/saved-items'), expect.objectContaining({ method: 'POST' }))
     })
+  })
+
+  it('renders the Decide compare flow with sister domain deltas', async () => {
+    window.history.replaceState({}, '', '/?page=decide&district=Colombo&compare=Kandy&profile=family&locale=en')
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Cost comparison' })).toBeInTheDocument()
+    expect(screen.getByText('Cost of Life')).toBeInTheDocument()
+    expect(screen.getByText('Food')).toBeInTheDocument()
+    expect(screen.getByText('Fuel')).toBeInTheDocument()
+    expect(screen.getByText('Shelter')).toBeInTheDocument()
+    expect(screen.getByLabelText('Compare against')).toHaveValue('Kandy')
   })
 
   it('loads the runtime-token operator release review without baking secrets into the app', async () => {

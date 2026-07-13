@@ -1,51 +1,73 @@
 import { useQuery } from '@tanstack/react-query'
 import { Scale } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, type Dispatch, type SetStateAction } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
-import { profileLabel, t } from '../i18n'
+import { domainLabel, profileLabel, t, type I18nKey } from '../i18n'
 import { getAffordability } from '../lib/api'
+import { trackEvent } from '../lib/analytics'
 import { districts, domainMeta, formatCompactLkr, formatLkr, formatMetric, profiles } from '../lib/format'
-import type { DomainKey, DomainMetric, DomainSignal, LocaleCode, Profile } from '../types'
+import type { AffordabilityResponse, DomainKey, DomainSignal, LocaleCode, Profile } from '../types'
 
-function metricMap(metrics: DomainMetric[]) {
-  return new Map(metrics.map((metric) => [metric.label, metric]))
+const sisterDomainKeys: Array<{ key: Extract<DomainKey, 'food' | 'fuel' | 'property'>; kicker: Extract<I18nKey, 'sisterFood' | 'sisterFuel' | 'sisterShelter'> }> = [
+  { key: 'food', kicker: 'sisterFood' },
+  { key: 'fuel', kicker: 'sisterFuel' },
+  { key: 'property', kicker: 'sisterShelter' },
+]
+
+function breakdownMonthly(data: AffordabilityResponse | undefined, key: string) {
+  return data?.breakdown.find((item) => item.key === key)?.monthly_lkr ?? null
 }
 
-export function ComparePage({ domains, locale }: { domains: DomainSignal[]; locale: LocaleCode }) {
-  const [leftDistrict, setLeftDistrict] = useState('Colombo')
-  const [rightDistrict, setRightDistrict] = useState('Kandy')
-  const [profile, setProfile] = useState<Profile>('family')
-  const [leftDomain, setLeftDomain] = useState<DomainKey>('food')
-  const [rightDomain, setRightDomain] = useState<DomainKey>('property')
-
-  const left = useQuery({
-    queryKey: ['affordability', leftDistrict, profile],
-    queryFn: () => getAffordability(leftDistrict, profile),
+export function ComparePage({
+  compareDistrict,
+  district,
+  domains,
+  locale,
+  profile,
+  setCompareDistrict,
+  setDistrict,
+  setProfile,
+}: {
+  compareDistrict: string
+  district: string
+  domains: DomainSignal[]
+  locale: LocaleCode
+  profile: Profile
+  setCompareDistrict: Dispatch<SetStateAction<string>>
+  setDistrict: Dispatch<SetStateAction<string>>
+  setProfile: Dispatch<SetStateAction<Profile>>
+}) {
+  const primary = useQuery({
+    queryKey: ['affordability', district, profile],
+    queryFn: () => getAffordability(district, profile),
   })
-  const right = useQuery({
-    queryKey: ['affordability', rightDistrict, profile],
-    queryFn: () => getAffordability(rightDistrict, profile),
+  const comparison = useQuery({
+    queryKey: ['affordability', compareDistrict, profile],
+    queryFn: () => getAffordability(compareDistrict, profile),
   })
 
-  const leftDomainData = domains.find((domain) => domain.key === leftDomain)
-  const rightDomainData = domains.find((domain) => domain.key === rightDomain)
-  const rows = useMemo(() => {
-    const labels = new Set([...(leftDomainData?.metrics.map((metric) => metric.label) ?? []), ...(rightDomainData?.metrics.map((metric) => metric.label) ?? [])])
-    const leftMetrics = metricMap(leftDomainData?.metrics ?? [])
-    const rightMetrics = metricMap(rightDomainData?.metrics ?? [])
-    return Array.from(labels).slice(0, 8).map((label) => ({
-      label,
-      left: leftMetrics.get(label),
-      right: rightMetrics.get(label),
-    }))
-  }, [leftDomainData, rightDomainData])
+  useEffect(() => {
+    if (!primary.isSuccess || !comparison.isSuccess) return
+    trackEvent('pulse.compare_run', { district_a: district, district_b: compareDistrict })
+  }, [compareDistrict, comparison.isSuccess, district, primary.isSuccess])
+
+  const sisterRows = useMemo(() => {
+    return sisterDomainKeys.map(({ key, kicker }) => {
+      const domain = domains.find((item) => item.key === key)
+      const topMetric = domain?.metrics[0]
+      const leftValue = breakdownMonthly(primary.data, key)
+      const rightValue = breakdownMonthly(comparison.data, key)
+      const delta = leftValue !== null && rightValue !== null ? leftValue - rightValue : null
+      return { key, kicker, domain, topMetric, leftValue, rightValue, delta }
+    })
+  }, [comparison.data, domains, primary.data])
 
   const districtChart = [
-    { name: leftDistrict, value: left.data?.total_monthly_lkr ?? 0 },
-    { name: rightDistrict, value: right.data?.total_monthly_lkr ?? 0 },
+    { name: district, value: primary.data?.total_monthly_lkr ?? 0 },
+    { name: compareDistrict, value: comparison.data?.total_monthly_lkr ?? 0 },
   ]
-  const delta = (left.data?.total_monthly_lkr ?? 0) - (right.data?.total_monthly_lkr ?? 0)
+  const costDelta = (primary.data?.total_monthly_lkr ?? 0) - (comparison.data?.total_monthly_lkr ?? 0)
 
   return (
     <div className="space-y-5">
@@ -60,17 +82,17 @@ export function ComparePage({ domains, locale }: { domains: DomainSignal[]; loca
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <label className="grid gap-2 text-sm font-semibold text-ink">
             {t(locale, 'compareLeftDistrict')}
-            <select className="h-11 rounded-lg border border-line bg-stone-50 px-3 text-sm" onChange={(event) => setLeftDistrict(event.target.value)} value={leftDistrict}>
-              {districts.map((district) => (
-                <option key={district}>{district}</option>
+            <select className="h-11 rounded-lg border border-line bg-stone-50 px-3 text-sm" onChange={(event) => setDistrict(event.target.value)} value={district}>
+              {districts.map((item) => (
+                <option key={item}>{item}</option>
               ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-ink">
-            {t(locale, 'compareRightDistrict')}
-            <select className="h-11 rounded-lg border border-line bg-stone-50 px-3 text-sm" onChange={(event) => setRightDistrict(event.target.value)} value={rightDistrict}>
-              {districts.map((district) => (
-                <option key={district}>{district}</option>
+            {t(locale, 'compareAgainst')}
+            <select className="h-11 rounded-lg border border-line bg-stone-50 px-3 text-sm" onChange={(event) => setCompareDistrict(event.target.value)} value={compareDistrict}>
+              {districts.map((item) => (
+                <option key={item}>{item}</option>
               ))}
             </select>
           </label>
@@ -89,15 +111,16 @@ export function ComparePage({ domains, locale }: { domains: DomainSignal[]; loca
 
       <section className="grid gap-5 xl:grid-cols-[0.7fr_1.3fr]">
         <div className="rounded-lg border border-line bg-white p-5 shadow-panel">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{t(locale, 'compareDelta')}</p>
-          <p className="mt-2 text-3xl font-semibold text-ink">{formatLkr(Math.abs(delta))}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{t(locale, 'costOfLife')}</p>
+          <p className="mt-1 text-sm text-muted">{t(locale, 'compareDelta')}</p>
+          <p className="mt-2 text-3xl font-semibold text-ink">{formatLkr(Math.abs(costDelta))}</p>
           <p className="mt-2 text-sm leading-6 text-muted">
-            {delta === 0
+            {costDelta === 0
               ? t(locale, 'compareDistrictsEven')
-              : t(locale, 'compareDistrictHigher').replace('{district}', delta > 0 ? leftDistrict : rightDistrict)}
+              : t(locale, 'compareDistrictHigher').replace('{district}', costDelta > 0 ? district : compareDistrict)}
           </p>
           <div className="mt-5 space-y-3">
-            {[left.data, right.data].filter(Boolean).map((item) => (
+            {[primary.data, comparison.data].filter(Boolean).map((item) => (
               <div key={item!.district} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
                 <p className="text-sm font-semibold text-ink">{item!.district}</p>
                 <p className="mt-1 text-2xl font-semibold text-ink">{formatCompactLkr(item!.total_monthly_lkr)}</p>
@@ -126,47 +149,54 @@ export function ComparePage({ domains, locale }: { domains: DomainSignal[]; loca
       </section>
 
       <section className="rounded-lg border border-line bg-white p-5 shadow-panel">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-ink">
-            {t(locale, 'compareDomainA')}
-            <select className="h-11 rounded-lg border border-line bg-stone-50 px-3 text-sm" onChange={(event) => setLeftDomain(event.target.value as DomainKey)} value={leftDomain}>
-              {domains.map((domain) => (
-                <option key={domain.key} value={domain.key}>
-                  {domain.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-ink">
-            {t(locale, 'compareDomainB')}
-            <select className="h-11 rounded-lg border border-line bg-stone-50 px-3 text-sm" onChange={(event) => setRightDomain(event.target.value as DomainKey)} value={rightDomain}>
-              {domains.map((domain) => (
-                <option key={domain.key} value={domain.key}>
-                  {domain.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{t(locale, 'compareDistricts')}</p>
+        <p className="mt-1 text-sm text-muted">
+          {district} {t(locale, 'compareTo')} {compareDistrict} · {profileLabel(locale, profile)}
+        </p>
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-[0.14em] text-muted">
                 <th className="py-3 pr-4">{t(locale, 'compareMetric')}</th>
-                <th className="py-3 pr-4" style={{ color: domainMeta[leftDomain].accent }}>
-                  {leftDomainData?.label ?? t(locale, 'compareDomainA')}
+                <th className="py-3 pr-4" style={{ color: domainMeta.food.accent }}>
+                  {district}
                 </th>
-                <th className="py-3" style={{ color: domainMeta[rightDomain].accent }}>
-                  {rightDomainData?.label ?? t(locale, 'compareDomainB')}
+                <th className="py-3 pr-4" style={{ color: domainMeta.fuel.accent }}>
+                  {compareDistrict}
                 </th>
+                <th className="py-3">{t(locale, 'compareDelta')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {rows.map((row) => (
-                <tr key={row.label}>
-                  <td className="py-3 pr-4 font-semibold text-ink">{row.label}</td>
-                  <td className="py-3 pr-4 text-muted">{row.left ? formatMetric(row.left.value, row.left.unit) : t(locale, 'compareNotAvailable')}</td>
-                  <td className="py-3 text-muted">{row.right ? formatMetric(row.right.value, row.right.unit) : t(locale, 'compareNotAvailable')}</td>
+              {sisterRows.map((row) => (
+                <tr key={row.key}>
+                  <td className="py-3 pr-4">
+                    <p className="font-semibold text-ink">{t(locale, row.kicker)}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      {row.topMetric?.label ?? domainLabel(locale, row.key, row.domain?.label ?? row.key)}
+                    </p>
+                    {row.topMetric ? (
+                      <p className="mt-1 text-xs text-muted">
+                        {t(locale, 'compareMetric')}: {formatMetric(row.topMetric.value, row.topMetric.unit)}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="py-3 pr-4 text-muted">{row.leftValue !== null ? formatLkr(row.leftValue) : t(locale, 'compareNotAvailable')}</td>
+                  <td className="py-3 pr-4 text-muted">{row.rightValue !== null ? formatLkr(row.rightValue) : t(locale, 'compareNotAvailable')}</td>
+                  <td className="py-3 font-semibold text-ink">
+                    {row.delta !== null ? (
+                      <>
+                        {row.delta === 0 ? '—' : formatLkr(Math.abs(row.delta))}
+                        {row.delta !== 0 ? (
+                          <span className="ml-1 text-xs font-semibold text-muted">
+                            ({row.delta > 0 ? district : compareDistrict})
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      t(locale, 'compareNotAvailable')
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

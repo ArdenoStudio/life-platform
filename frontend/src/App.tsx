@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
@@ -23,7 +23,8 @@ import {
   searchLife,
   updateMeProfile,
 } from './lib/api'
-import { readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
+import { trackEvent } from './lib/analytics'
+import { districts, readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
 import { resolvePage, validPages, type PageParam } from './lib/pages'
 import type { LocaleCode, PageKey, Profile } from './types'
 
@@ -65,11 +66,16 @@ function readInitialParams() {
   const locale = params.get('locale') as LocaleCode | null
   const profile = params.get('profile') as Profile | null
   const districtParam = params.get('district')
+  const compareParam = params.get('compare')
   const storedDistrict = readStoredHomeDistrict()
+  const district = districtParam && districtParam !== 'Sri Lanka' ? districtParam : storedDistrict
+  const compareDistrict =
+    compareParam && compareParam !== 'Sri Lanka' && districts.includes(compareParam) ? compareParam : 'Kandy'
   return {
     page: pageParam && validPages.includes(pageParam as PageParam) ? resolvePage(pageParam) : 'home',
     locale: locale && validLocales.includes(locale) ? locale : 'en',
-    district: districtParam && districtParam !== 'Sri Lanka' ? districtParam : storedDistrict,
+    district,
+    compareDistrict,
     profile: profile && validProfiles.includes(profile) ? profile : 'family',
   }
 }
@@ -97,13 +103,15 @@ function AppContent() {
   const [activePage, setActivePage] = useState<PageKey>(initial.page)
   const [locale, setLocale] = useState<LocaleCode>(initial.locale)
   const [district, setDistrict] = useState(initial.district)
+  const [compareDistrict, setCompareDistrict] = useState(initial.compareDistrict)
   const [profile, setProfile] = useState<Profile>(initial.profile)
   const [searchQuery, setSearchQuery] = useState('')
+  const previousDistrictRef = useRef(initial.district)
 
   useEffect(() => {
-    const params = new URLSearchParams({ page: activePage, locale, district, profile })
+    const params = new URLSearchParams({ page: activePage, locale, district, profile, compare: compareDistrict })
     window.history.replaceState({}, '', `${window.location.pathname}?${params}`)
-  }, [activePage, locale, district, profile])
+  }, [activePage, compareDistrict, district, locale, profile])
 
   useEffect(() => {
     if (district !== 'Sri Lanka') {
@@ -130,6 +138,14 @@ function AppContent() {
     authProfile?.default_locale && validLocales.includes(authProfile.default_locale)
       ? authProfile.default_locale
       : locale
+
+  useEffect(() => {
+    const from = previousDistrictRef.current
+    if (from !== activeDistrict) {
+      trackEvent('pulse.district_change', { auth: Boolean(auth.user), from, to: activeDistrict })
+      previousDistrictRef.current = activeDistrict
+    }
+  }, [activeDistrict, auth.user])
 
   const overviewQuery = useQuery({
     queryKey: ['life-overview', activeDistrict, activeProfile],
@@ -184,6 +200,7 @@ function AppContent() {
   })
 
   const domains = overviewQuery.data?.domains ?? domainsQuery.data?.items ?? []
+  const propertyDomain = domains.find((item) => item.key === 'property')
 
   const saveProfileMutation = useMutation({
     mutationFn: async () => {
@@ -309,6 +326,7 @@ function AppContent() {
             district={activeDistrict}
             locale={activeLocale}
             profile={activeProfile}
+            setActivePage={setActivePage}
             setDistrict={setDistrict}
             setProfile={setProfile}
             transport={transportQuery.data}
@@ -321,6 +339,7 @@ function AppContent() {
             district={activeDistrict}
             locale={activeLocale}
             profile={activeProfile}
+            propertyDomain={propertyDomain}
             setDistrict={setDistrict}
             setProfile={setProfile}
           />
@@ -348,7 +367,18 @@ function AppContent() {
             transport={transportQuery.data}
           />
         ) : null}
-        {activePage === 'decide' ? <Decide domains={domains} locale={activeLocale} /> : null}
+        {activePage === 'decide' ? (
+          <Decide
+            compareDistrict={compareDistrict}
+            district={activeDistrict}
+            domains={domains}
+            locale={activeLocale}
+            profile={activeProfile}
+            setCompareDistrict={setCompareDistrict}
+            setDistrict={setDistrict}
+            setProfile={setProfile}
+          />
+        ) : null}
       </Suspense>
     </Shell>
   )
