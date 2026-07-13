@@ -78,12 +78,23 @@ export interface AffordabilityResponse {
   assumptions: string[]
 }
 
+export interface SurvivalIndexResponse {
+  district: string
+  profile: Profile
+  monthly_lkr: number
+  daily_lkr: number
+  confidence: Confidence
+  label: string
+  disclaimer: string
+}
+
 export interface LifeOverviewResponse {
   generated_at: string
   headline: string
   freshness_note: string
   domains: DomainSignal[]
   affordability: AffordabilityResponse
+  survival_index: SurvivalIndexResponse
   top_movers: DomainHighlight[]
   source_health: {
     healthy: number
@@ -510,4 +521,4 @@ export interface LifePulseResponse {
   unread_count: number
 }
 
-export type PageKey = 'home' | 'cost' | 'atlas' | 'intelligence' | 'sources' | 'operator'
+export type PageKey = 'home' | 'cost' | 'atlas' | 'move' | 'decide' | 'intelligence' | 'sources' | 'operator'

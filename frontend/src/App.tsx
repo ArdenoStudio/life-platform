@@ -16,12 +16,14 @@ import {
   getLifePulse,
   getOverview,
   getRetailOffers,
+  getSourceRelease,
   getTransport,
   getUtilities,
   markNotification,
   searchLife,
   updateMeProfile,
 } from './lib/api'
+import { readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
 import type { LocaleCode, PageKey, Profile } from './types'
 
 const loadHomePage = () => import('./pages/HomePage')
@@ -30,6 +32,8 @@ const loadAtlasPage = () => import('./pages/AtlasPage')
 const loadIntelligencePage = () => import('./pages/IntelligencePage')
 const loadSourcesPage = () => import('./pages/SourcesPage')
 const loadOperatorPage = () => import('./pages/OperatorPage')
+const loadMovePage = () => import('./pages/MovePage')
+const loadComparePage = () => import('./pages/ComparePage')
 
 const HomePage = lazy(() => loadHomePage().then(({ HomePage }) => ({ default: HomePage })))
 const CostOSPage = lazy(() => loadCostOSPage().then(({ CostOSPage }) => ({ default: CostOSPage })))
@@ -37,17 +41,21 @@ const AtlasPage = lazy(() => loadAtlasPage().then(({ AtlasPage }) => ({ default:
 const IntelligencePage = lazy(() => loadIntelligencePage().then(({ IntelligencePage }) => ({ default: IntelligencePage })))
 const SourcesPage = lazy(() => loadSourcesPage().then(({ SourcesPage }) => ({ default: SourcesPage })))
 const OperatorPage = lazy(() => loadOperatorPage().then(({ OperatorPage }) => ({ default: OperatorPage })))
+const MovePage = lazy(() => loadMovePage().then(({ MovePage }) => ({ default: MovePage })))
+const Decide = lazy(() => loadComparePage().then(({ ComparePage }) => ({ default: ComparePage })))
 
 const pagePreloaders: Record<PageKey, () => Promise<unknown>> = {
   atlas: loadAtlasPage,
   cost: loadCostOSPage,
+  decide: loadComparePage,
   home: loadHomePage,
   intelligence: loadIntelligencePage,
+  move: loadMovePage,
   operator: loadOperatorPage,
   sources: loadSourcesPage,
 }
 
-const validPages: PageKey[] = ['home', 'cost', 'atlas', 'intelligence', 'sources', 'operator']
+const validPages: PageKey[] = ['home', 'cost', 'atlas', 'intelligence', 'sources', 'operator', 'move', 'decide']
 const validLocales: LocaleCode[] = ['en', 'si', 'ta']
 const validProfiles: Profile[] = ['single', 'family', 'commuter']
 
@@ -56,10 +64,12 @@ function readInitialParams() {
   const page = params.get('page') as PageKey | null
   const locale = params.get('locale') as LocaleCode | null
   const profile = params.get('profile') as Profile | null
+  const districtParam = params.get('district')
+  const storedDistrict = readStoredHomeDistrict()
   return {
     page: page && validPages.includes(page) ? page : 'home',
     locale: locale && validLocales.includes(locale) ? locale : 'en',
-    district: params.get('district') || 'Sri Lanka',
+    district: districtParam && districtParam !== 'Sri Lanka' ? districtParam : storedDistrict,
     profile: profile && validProfiles.includes(profile) ? profile : 'family',
   }
 }
@@ -95,6 +105,12 @@ function AppContent() {
     window.history.replaceState({}, '', `${window.location.pathname}?${params}`)
   }, [activePage, locale, district, profile])
 
+  useEffect(() => {
+    if (district !== 'Sri Lanka') {
+      writeStoredHomeDistrict(district)
+    }
+  }, [district])
+
   const overviewQuery = useQuery({
     queryKey: ['life-overview', district, profile],
     queryFn: () => getOverview(district, profile),
@@ -128,6 +144,11 @@ function AppContent() {
   const insightsQuery = useQuery({
     queryKey: ['life-insights'],
     queryFn: () => getInsights(),
+  })
+
+  const sourceReleaseQuery = useQuery({
+    queryKey: ['life-source-release'],
+    queryFn: getSourceRelease,
   })
 
   const domainsQuery = useQuery({
@@ -218,11 +239,15 @@ function AppContent() {
       activePage={activePage}
       authConfigured={auth.authConfigured}
       authLoading={auth.authLoading}
+      district={district}
       locale={locale}
+      profile={profile}
       searchQuery={searchQuery}
       searchResults={searchQueryResult.data ?? []}
       setActivePage={setActivePage}
+      setDistrict={setDistrict}
       setLocale={setLocale}
+      setProfile={setProfile}
       setSearchQuery={setSearchQuery}
       preloadPage={preloadPage}
       signIn={auth.signIn}
@@ -267,7 +292,7 @@ function AppContent() {
             setActivePage={setActivePage}
             setDistrict={setDistrict}
             setProfile={setProfile}
-            utilities={utilitiesQuery.data}
+            sourceRelease={sourceReleaseQuery.data}
           />
         ) : null}
         {activePage === 'cost' ? (
@@ -307,6 +332,15 @@ function AppContent() {
         ) : null}
         {activePage === 'sources' ? <SourcesPage domains={domains} locale={locale} /> : null}
         {activePage === 'operator' ? <OperatorPage locale={locale} /> : null}
+        {activePage === 'move' ? (
+          <MovePage
+            costCommand={costQuery.data}
+            locale={locale}
+            setActivePage={setActivePage}
+            transport={transportQuery.data}
+          />
+        ) : null}
+        {activePage === 'decide' ? <Decide domains={domains} locale={locale} /> : null}
       </Suspense>
     </Shell>
   )

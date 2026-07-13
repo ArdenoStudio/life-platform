@@ -85,6 +85,18 @@ export const domainMeta: Record<
   },
 }
 
+export const HOME_DISTRICT_KEY = 'ariva-home-district'
+
+export function readStoredHomeDistrict() {
+  if (typeof localStorage === 'undefined') return 'Colombo'
+  return localStorage.getItem(HOME_DISTRICT_KEY) || 'Colombo'
+}
+
+export function writeStoredHomeDistrict(district: string) {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(HOME_DISTRICT_KEY, district)
+}
+
 export const districts = [
   'Sri Lanka',
   'Colombo',

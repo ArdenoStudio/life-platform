@@ -11,6 +11,7 @@ import type {
   LifeOverviewResponse,
   LifePulseResponse,
   PipelineResponse,
+  PublicSourceReleaseResponse,
   SourceImportArtifactsResponse,
   SourceImportExecutionResponse,
   SourceDataReleasesResponse,
@@ -85,11 +86,32 @@ const overview: LifeOverviewResponse = {
     breakdown: [{ key: 'food', label: 'Food and groceries', monthly_lkr: 37455, confidence: 'medium', source_domains: ['food'], note: 'FoodLK basket.' }],
     assumptions: ['Planning index.'],
   },
+  survival_index: {
+    district: 'Sri Lanka',
+    profile: 'family',
+    monthly_lkr: 192000,
+    daily_lkr: 6316,
+    confidence: 'medium',
+    label: 'Cost of Life',
+    disclaimer: 'Planning index.',
+  },
   top_movers: [
     { label: 'Petrol 92', value: 'LKR 410', severity: 'neutral', href: null },
     { label: 'Retail quote', value: 'watch', severity: 'watch', href: null },
   ],
   source_health: { healthy: 10, degraded: 1, offline: 0, total: 11, average_score: 82.5 },
+}
+
+const sourceRelease: PublicSourceReleaseResponse = {
+  generated_at: overview.generated_at,
+  status: 'seed_fallback',
+  active_release_key: null,
+  observed_at: null,
+  source_keys: [],
+  district_profile_snapshot_count: 0,
+  weather_risk_snapshot_count: 0,
+  area_score_snapshot_count: 0,
+  note: 'Reviewed seed data powers public Atlas and weather responses.',
 }
 
 const costCommand = {
@@ -373,6 +395,7 @@ describe('Ariva', () => {
         if (url.includes('/life/transport')) return jsonResponse({ generated_at: overview.generated_at, from_area: 'Colombo', to_area: 'Kandy', options: [], sources: [source] })
         if (url.includes('/life/retail/offers')) return jsonResponse({ generated_at: overview.generated_at, query: null, district: 'Sri Lanka', offers: [], sources: [source] })
         if (url.includes('/life/insights')) return jsonResponse(insights)
+        if (url.includes('/life/source-release')) return jsonResponse(sourceRelease)
         if (url.includes('/life/source-validation')) return jsonResponse(sourceValidation)
         if (url.includes('/life/pipeline')) return jsonResponse(pipeline)
         if (url.includes('/internal/source-import-run')) return jsonResponse(sourceImportExecution)
@@ -433,7 +456,7 @@ describe('Ariva', () => {
 
   it('renders logged-in My Ariva Pulse and account actions with test auth', async () => {
     ;(globalThis as { __ARIVA_TEST_AUTH_TOKEN__?: string }).__ARIVA_TEST_AUTH_TOKEN__ = 'life-test-token'
-    render(<App />)
+    const { unmount } = render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'My Ariva Pulse' })).toBeInTheDocument()
     expect(screen.getByText('Rice watch')).toBeInTheDocument()
@@ -444,7 +467,9 @@ describe('Ariva', () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/me/profile'), expect.objectContaining({ method: 'PUT' }))
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Signals/i }))
+    unmount()
+    window.history.replaceState({}, '', '/?page=intelligence&district=Colombo&profile=family&locale=en')
+    render(<App />)
     const saveButtons = await screen.findAllByRole('button', { name: /Save/i })
     fireEvent.click(saveButtons[0])
     await waitFor(() => {
