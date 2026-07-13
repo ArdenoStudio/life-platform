@@ -9,7 +9,10 @@ test('Ariva home renders without horizontal overflow', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: /Know how Sri Lanka lives/i })).toBeVisible({ timeout: 15000 })
   await expect(page.getByText('Ariva').first()).toBeVisible()
-  await expect(page.getByText(/Daily essentials strip/i)).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Food', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Fuel', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Shelter', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Cost Desk', exact: true })).toBeVisible()
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
@@ -19,9 +22,10 @@ test('sources and trilingual UI render without horizontal overflow', async ({ pa
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/Language/i).selectOption('si')
   await expect(page.getByRole('heading', { name: /ශ්‍රී ලංකාව ජීවත්වන/i })).toBeVisible()
-  await page.getByLabel('Primary').getByRole('button', { name: /මූලාශ්‍ර/i }).click()
+  await page.getByLabel('Primary').getByRole('button', { name: /විශ්වාසය/i }).click()
 
-  await expect(page.getByRole('heading', { name: 'මූලාශ්‍ර', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'විශ්වාසය', exact: true })).toBeVisible()
+  await expect(page.getByText(/සියලු මූලාශ්‍ර/i)).toBeVisible()
   await expect(page.getByText(/මූලාශ්‍ර වලංගුකරණ/i)).toBeVisible()
   await expect(page.getByText(/සක්‍රීය මූලාශ්‍ර නිකුතුව/i)).toBeVisible()
   await expect(page.getByText(/Seed fallback|ප්‍රවර්ධිත නිකුතුව/i)).toBeVisible()

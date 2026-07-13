@@ -1,14 +1,14 @@
 import { ArrowRight, Bell, Bookmark, DatabaseZap, RefreshCcw, Save, ShieldCheck, WalletCards } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { BrandMark } from '../components/BrandMark'
 import { MetricTile } from '../components/MetricTile'
-import { SourcePill } from '../components/SourcePill'
+import { SisterSignalCard } from '../components/SisterSignalCard'
+import { TrustStrip } from '../components/TrustStrip'
 import { BackgroundBeams, BentoCard, BentoGrid, BorderBeam, DataRail, MetricDeck, ShimmerButton, ShimmerText, SignalMap, Spotlight } from '../components/ui/AceternityPrimitives'
-import { domainLabel, profileLabel, statusLabel, t } from '../i18n'
+import { profileLabel, statusLabel, t } from '../i18n'
 import { districts, formatLkrLocale, profiles, severityTone } from '../lib/format'
-import type { AtlasResponse, CostCommandResponse, DomainHighlight, LifeOverviewResponse, LifePulseResponse, LocaleCode, PageKey, Profile, PublicSourceReleaseResponse } from '../types'
+import type { LifeOverviewResponse, LifePulseResponse, LocaleCode, PageKey, Profile, PublicSourceReleaseResponse } from '../types'
 
 const sisterDomainKeys = [
   { key: 'food' as const, kicker: 'sisterFood' as const },
@@ -28,37 +28,7 @@ function releaseBadgeLabel(locale: LocaleCode, sourceRelease: PublicSourceReleas
   return statusLabel(locale, 'loading')
 }
 
-function topMoverClassName(severity: DomainHighlight['severity']) {
-  return `flex items-start justify-between gap-4 rounded-lg border px-3 py-3 ${severityTone(severity)}`
-}
-
-function TopMoverRow({ mover }: { mover: DomainHighlight }) {
-  const content = (
-    <>
-      <span className="min-w-0 text-sm font-bold">{mover.label}</span>
-      <span className="text-right text-sm">{mover.value}</span>
-    </>
-  )
-
-  if (mover.href) {
-    const isExternal = /^https?:\/\//i.test(mover.href)
-    return (
-      <a
-        className={topMoverClassName(mover.severity)}
-        href={mover.href}
-        {...(isExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
-      >
-        {content}
-      </a>
-    )
-  }
-
-  return <div className={topMoverClassName(mover.severity)}>{content}</div>
-}
-
 export function HomePage({
-  atlas,
-  costCommand,
   district,
   isLoading,
   lifePulse,
@@ -74,8 +44,6 @@ export function HomePage({
   setProfile,
   sourceRelease,
 }: {
-  atlas: AtlasResponse | undefined
-  costCommand: CostCommandResponse | undefined
   district: string
   isLoading: boolean
   lifePulse: LifePulseResponse | undefined
@@ -110,11 +78,6 @@ export function HomePage({
     )
   }
 
-  const costItems = costCommand?.items ?? []
-  const chartData = costItems.slice(0, 8).map((item) => ({ name: item.label, value: item.monthly_lkr }))
-  const liveSources = Array.from(
-    new Map([...(costCommand?.sources ?? []), ...(atlas?.sources ?? [])].map((source) => [source.key, source])).values(),
-  ).slice(0, 8)
   const lkrLocale = locale === 'en' ? 'en-LK' : locale
   const survivalIndex = overview.survival_index
 
@@ -201,12 +164,20 @@ export function HomePage({
                   label={survivalIndex.label}
                   note={`${survivalIndex.district} / ${profileLabel(locale, survivalIndex.profile)}`}
                   tone="gold"
-                  value={formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)}
+                  value={
+                    survivalIndex.index_score != null
+                      ? `${Math.round(survivalIndex.index_score)}/100`
+                      : formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)
+                  }
                 />
                 <MetricTile
                   icon={WalletCards}
                   label={t(locale, 'dailyTotal')}
-                  note={survivalIndex.disclaimer}
+                  note={
+                    survivalIndex.index_score != null
+                      ? `${t(locale, 'monthlyPressureCurve')}: ${formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)} · ${survivalIndex.trend ?? 'flat'}`
+                      : survivalIndex.disclaimer
+                  }
                   tone="blue"
                   value={formatLkrLocale(survivalIndex.daily_lkr, lkrLocale)}
                 />
@@ -226,6 +197,16 @@ export function HomePage({
           </div>
         </div>
       </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {sisterDomainKeys.map(({ key, kicker }) => {
+          const domain = overview.domains.find((item) => item.key === key)
+          if (!domain) return null
+          return <SisterSignalCard key={domain.key} domain={domain} kickerKey={kicker} locale={locale} />
+        })}
+      </section>
+
+      <TrustStrip domains={overview.domains} locale={locale} sourceRelease={sourceRelease} />
 
       {lifePulse ? (
         <BentoGrid>
@@ -302,81 +283,6 @@ export function HomePage({
           </BentoCard>
         </BentoGrid>
       ) : null}
-
-      <BentoGrid>
-        <BentoCard beam className="md:col-span-8 xl:col-span-8" tone="leaf">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="atlas-label">{t(locale, 'nationalPulse')}</p>
-              <h2 className="mt-1 text-2xl font-bold text-ink">{t(locale, 'costCommand')}</h2>
-            </div>
-            <ShieldCheck className="h-5 w-5 text-leaf" aria-hidden="true" />
-          </div>
-          <div className="mt-5 h-80">
-            <ResponsiveContainer height="100%" width="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 28, right: 24, top: 10, bottom: 10 }}>
-                <CartesianGrid horizontal={false} stroke="#d7c8a8" />
-                <XAxis dataKey="value" hide type="number" />
-                <YAxis dataKey="name" tick={{ fill: '#6f695d', fontSize: 12, fontWeight: 700 }} type="category" width={142} />
-                <Tooltip formatter={(value) => formatLkrLocale(Number(value), locale === 'en' ? 'en-LK' : locale)} />
-                <Bar dataKey="value" fill="#225e45" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </BentoCard>
-
-        <BentoCard beam dark className="md:col-span-4 xl:col-span-4" tone="gold">
-          <div className="mt-1 grid gap-3">
-            {sisterDomainKeys.map(({ key, kicker }) => {
-              const domain = overview.domains.find((item) => item.key === key)
-              if (!domain) return null
-              const topMetric = domain.metrics[0]
-              return (
-                <a
-                  key={domain.key}
-                  className="block rounded-lg border border-white/10 bg-white/10 p-3 transition hover:bg-white/15"
-                  href={domain.homepage_url}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-gold/90">{t(locale, kicker)}</p>
-                  <div className="mt-2 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-bold text-paper">{domainLabel(locale, domain.key, domain.label)}</p>
-                      {topMetric ? (
-                        <p className="mt-1 text-sm leading-5 text-paper/64">
-                          {topMetric.label}: {topMetric.value} {topMetric.unit ?? ''}
-                        </p>
-                      ) : null}
-                    </div>
-                    <span className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-xs font-bold text-paper/72">{statusLabel(locale, domain.status)}</span>
-                  </div>
-                </a>
-              )
-            })}
-          </div>
-        </BentoCard>
-
-        <BentoCard beam className="md:col-span-5 xl:col-span-5" tone="chili">
-          <p className="atlas-label">{t(locale, 'publicIntelligence')}</p>
-          <h2 className="mt-1 text-2xl font-bold text-ink">{t(locale, 'signalsToWatch')}</h2>
-          <div className="mt-5 space-y-2">
-            {overview.top_movers.map((mover) => (
-              <TopMoverRow key={`${mover.label}-${mover.value}`} mover={mover} />
-            ))}
-          </div>
-        </BentoCard>
-
-        <BentoCard beam className="md:col-span-7 xl:col-span-7" tone="steel">
-          <p className="atlas-label">{t(locale, 'sourceClassified')}</p>
-          <h2 className="mt-1 text-2xl font-bold text-ink">{t(locale, 'liveSources')}</h2>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {liveSources.map((source) => (
-              <SourcePill key={source.key} locale={locale} source={source} />
-            ))}
-          </div>
-        </BentoCard>
-      </BentoGrid>
     </div>
   )
 }

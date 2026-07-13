@@ -85,16 +85,27 @@ export const domainMeta: Record<
   },
 }
 
-export const HOME_DISTRICT_KEY = 'ariva-home-district'
+const LEGACY_HOME_DISTRICT_KEY = 'ariva-home-district'
+
+export const HOME_DISTRICT_KEY = 'ariva.homeDistrict'
 
 export function readStoredHomeDistrict() {
   if (typeof localStorage === 'undefined') return 'Colombo'
-  return localStorage.getItem(HOME_DISTRICT_KEY) || 'Colombo'
+  const stored = localStorage.getItem(HOME_DISTRICT_KEY)
+  if (stored) return stored
+  const legacy = localStorage.getItem(LEGACY_HOME_DISTRICT_KEY)
+  if (legacy) {
+    localStorage.setItem(HOME_DISTRICT_KEY, legacy)
+    localStorage.removeItem(LEGACY_HOME_DISTRICT_KEY)
+    return legacy
+  }
+  return 'Colombo'
 }
 
 export function writeStoredHomeDistrict(district: string) {
   if (typeof localStorage === 'undefined') return
   localStorage.setItem(HOME_DISTRICT_KEY, district)
+  localStorage.removeItem(LEGACY_HOME_DISTRICT_KEY)
 }
 
 export const districts = [

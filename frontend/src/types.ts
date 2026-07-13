@@ -86,6 +86,8 @@ export interface SurvivalIndexResponse {
   confidence: Confidence
   label: string
   disclaimer: string
+  index_score?: number | null
+  trend?: Trend | null
 }
 
 export interface LifeOverviewResponse {

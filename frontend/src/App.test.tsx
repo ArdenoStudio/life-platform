@@ -93,7 +93,9 @@ const overview: LifeOverviewResponse = {
     daily_lkr: 6316,
     confidence: 'medium',
     label: 'Cost of Life',
-    disclaimer: 'Planning index.',
+    disclaimer: 'Planning index with 45% food, 20% fuel, 35% shelter weights.',
+    index_score: 100,
+    trend: 'flat',
   },
   top_movers: [
     { label: 'Petrol 92', value: 'LKR 410', severity: 'neutral', href: null },

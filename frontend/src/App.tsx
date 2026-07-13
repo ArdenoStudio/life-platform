@@ -24,6 +24,7 @@ import {
   updateMeProfile,
 } from './lib/api'
 import { readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
+import { resolvePage, validPages, type PageParam } from './lib/pages'
 import type { LocaleCode, PageKey, Profile } from './types'
 
 const loadHomePage = () => import('./pages/HomePage')
@@ -55,19 +56,18 @@ const pagePreloaders: Record<PageKey, () => Promise<unknown>> = {
   sources: loadSourcesPage,
 }
 
-const validPages: PageKey[] = ['home', 'cost', 'atlas', 'intelligence', 'sources', 'operator', 'move', 'decide']
 const validLocales: LocaleCode[] = ['en', 'si', 'ta']
 const validProfiles: Profile[] = ['single', 'family', 'commuter']
 
 function readInitialParams() {
   const params = new URLSearchParams(window.location.search)
-  const page = params.get('page') as PageKey | null
+  const pageParam = params.get('page')
   const locale = params.get('locale') as LocaleCode | null
   const profile = params.get('profile') as Profile | null
   const districtParam = params.get('district')
   const storedDistrict = readStoredHomeDistrict()
   return {
-    page: page && validPages.includes(page) ? page : 'home',
+    page: pageParam && validPages.includes(pageParam as PageParam) ? resolvePage(pageParam) : 'home',
     locale: locale && validLocales.includes(locale) ? locale : 'en',
     district: districtParam && districtParam !== 'Sri Lanka' ? districtParam : storedDistrict,
     profile: profile && validProfiles.includes(profile) ? profile : 'family',
@@ -111,34 +111,54 @@ function AppContent() {
     }
   }, [district])
 
+  const lifePulseQuery = useQuery({
+    queryKey: ['me-life-pulse', auth.user?.uid],
+    queryFn: async () => {
+      const token = await auth.getToken()
+      if (!token) throw new Error('Authentication token unavailable')
+      return getLifePulse(token)
+    },
+    enabled: Boolean(auth.user),
+  })
+
+  const authProfile = lifePulseQuery.data?.profile
+  const activeDistrict =
+    authProfile?.district && authProfile.district !== 'Sri Lanka' ? authProfile.district : district
+  const activeProfile =
+    authProfile?.profile && validProfiles.includes(authProfile.profile) ? authProfile.profile : profile
+  const activeLocale =
+    authProfile?.default_locale && validLocales.includes(authProfile.default_locale)
+      ? authProfile.default_locale
+      : locale
+
   const overviewQuery = useQuery({
-    queryKey: ['life-overview', district, profile],
-    queryFn: () => getOverview(district, profile),
+    queryKey: ['life-overview', activeDistrict, activeProfile],
+    queryFn: () => getOverview(activeDistrict, activeProfile),
   })
 
   const costQuery = useQuery({
-    queryKey: ['life-cost-command', district, profile, locale],
-    queryFn: () => getCostCommand(district, profile, locale),
+    queryKey: ['life-cost-command', activeDistrict, activeProfile, activeLocale],
+    queryFn: () => getCostCommand(activeDistrict, activeProfile, activeLocale),
   })
 
   const atlasQuery = useQuery({
-    queryKey: ['life-atlas', district, profile, locale],
-    queryFn: () => getAtlas(district, profile, locale),
+    queryKey: ['life-atlas', activeDistrict, activeProfile, activeLocale],
+    queryFn: () => getAtlas(activeDistrict, activeProfile, activeLocale),
   })
 
   const utilitiesQuery = useQuery({
-    queryKey: ['life-utilities', district],
-    queryFn: () => getUtilities(district),
+    queryKey: ['life-utilities', activeDistrict],
+    queryFn: () => getUtilities(activeDistrict),
   })
 
   const transportQuery = useQuery({
-    queryKey: ['life-transport', district],
-    queryFn: () => getTransport(district === 'Sri Lanka' ? 'Colombo' : district, 'Colombo'),
+    queryKey: ['life-transport', activeDistrict],
+    queryFn: () => getTransport(activeDistrict === 'Sri Lanka' ? 'Colombo' : activeDistrict, 'Colombo'),
   })
 
   const retailQuery = useQuery({
-    queryKey: ['life-retail', searchQuery, district],
-    queryFn: () => getRetailOffers(searchQuery, district),
+    queryKey: ['life-retail', searchQuery, activeDistrict],
+    queryFn: () => getRetailOffers(searchQuery, activeDistrict),
   })
 
   const insightsQuery = useQuery({
@@ -164,16 +184,6 @@ function AppContent() {
   })
 
   const domains = overviewQuery.data?.domains ?? domainsQuery.data?.items ?? []
-
-  const lifePulseQuery = useQuery({
-    queryKey: ['me-life-pulse', auth.user?.uid],
-    queryFn: async () => {
-      const token = await auth.getToken()
-      if (!token) throw new Error('Authentication token unavailable')
-      return getLifePulse(token)
-    },
-    enabled: Boolean(auth.user),
-  })
 
   const saveProfileMutation = useMutation({
     mutationFn: async () => {
@@ -239,9 +249,9 @@ function AppContent() {
       activePage={activePage}
       authConfigured={auth.authConfigured}
       authLoading={auth.authLoading}
-      district={district}
-      locale={locale}
-      profile={profile}
+      district={activeDistrict}
+      locale={activeLocale}
+      profile={activeProfile}
       searchQuery={searchQuery}
       searchResults={searchQueryResult.data ?? []}
       setActivePage={setActivePage}
@@ -277,17 +287,15 @@ function AppContent() {
       >
         {activePage === 'home' ? (
           <HomePage
-            atlas={atlasQuery.data}
-            costCommand={costQuery.data}
-            district={district}
+            district={activeDistrict}
             isLoading={overviewQuery.isLoading}
             lifePulse={lifePulseQuery.data}
-            locale={locale}
+            locale={activeLocale}
             onMarkNotificationRead={(notificationId) => markNotificationMutation.mutate(notificationId)}
             onRefresh={() => void overviewQuery.refetch()}
             onSaveProfile={() => saveProfileMutation.mutate()}
             overview={overviewQuery.data}
-            profile={profile}
+            profile={activeProfile}
             saveProfilePending={saveProfileMutation.isPending}
             setActivePage={setActivePage}
             setDistrict={setDistrict}
@@ -298,9 +306,9 @@ function AppContent() {
         {activePage === 'cost' ? (
           <CostOSPage
             costCommand={costQuery.data}
-            district={district}
-            locale={locale}
-            profile={profile}
+            district={activeDistrict}
+            locale={activeLocale}
+            profile={activeProfile}
             setDistrict={setDistrict}
             setProfile={setProfile}
             transport={transportQuery.data}
@@ -310,9 +318,9 @@ function AppContent() {
         {activePage === 'atlas' ? (
           <AtlasPage
             atlas={atlasQuery.data}
-            district={district}
-            locale={locale}
-            profile={profile}
+            district={activeDistrict}
+            locale={activeLocale}
+            profile={activeProfile}
             setDistrict={setDistrict}
             setProfile={setProfile}
           />
@@ -322,7 +330,7 @@ function AppContent() {
             domains={domains}
             insights={insightsQuery.data}
             isSignedIn={Boolean(auth.user)}
-            locale={locale}
+            locale={activeLocale}
             onCreateAlert={(domainKey) => createAlertMutation.mutate(domainKey)}
             onSaveDomain={(domainKey) => saveDomainMutation.mutate(domainKey)}
             retail={retailQuery.data}
@@ -330,17 +338,17 @@ function AppContent() {
             setSearchQuery={setSearchQuery}
           />
         ) : null}
-        {activePage === 'sources' ? <SourcesPage domains={domains} locale={locale} /> : null}
-        {activePage === 'operator' ? <OperatorPage locale={locale} /> : null}
+        {activePage === 'sources' ? <SourcesPage domains={domains} locale={activeLocale} /> : null}
+        {activePage === 'operator' ? <OperatorPage locale={activeLocale} /> : null}
         {activePage === 'move' ? (
           <MovePage
             costCommand={costQuery.data}
-            locale={locale}
+            locale={activeLocale}
             setActivePage={setActivePage}
             transport={transportQuery.data}
           />
         ) : null}
-        {activePage === 'decide' ? <Decide domains={domains} locale={locale} /> : null}
+        {activePage === 'decide' ? <Decide domains={domains} locale={activeLocale} /> : null}
       </Suspense>
     </Shell>
   )

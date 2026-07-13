@@ -4,6 +4,7 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { LifeAuthUser } from '../auth/AuthContext'
 import { localeOptions, profileLabel, t } from '../i18n'
 import { districts, profiles } from '../lib/format'
+import { resolvePage } from '../lib/pages'
 import type { LocaleCode, PageKey, Profile, SearchResult } from '../types'
 import { BrandMark } from './BrandMark'
 import { FloatingSurface, IconInput } from './ui/AceternityPrimitives'
@@ -24,9 +25,9 @@ function navigateFromHref(href: string, setActivePage: Dispatch<SetStateAction<P
   }
   try {
     const url = new URL(href, window.location.origin)
-    const page = url.searchParams.get('page') as PageKey | null
+    const page = url.searchParams.get('page')
     if (page) {
-      setActivePage(page)
+      setActivePage(resolvePage(page))
       return
     }
   } catch {

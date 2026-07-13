@@ -7,7 +7,9 @@ import { BackgroundBeams, BorderBeam, Spotlight } from '../components/ui/Acetern
 import { domainLabel, sourceTypeLabel, statusLabel, t } from '../i18n'
 import { getPipeline, getSourceRelease, getSourceValidation } from '../lib/api'
 import { domainMeta, formatDate, sourceTypeTone, statusTone } from '../lib/format'
-import type { DomainSignal, LocaleCode, SourceType, SourceValidationCheck } from '../types'
+import type { DomainKey, DomainSignal, LocaleCode, SourceType, SourceValidationCheck } from '../types'
+
+const mvpSisterKeys = ['food', 'fuel', 'property'] as const satisfies readonly DomainKey[]
 
 const sourceClasses = [
   { type: 'official', labelKey: 'sourceClassOfficial' },
@@ -34,6 +36,35 @@ function releaseTone(status?: 'promoted' | 'seed_fallback') {
   return 'border-stone-200 bg-stone-50 text-muted'
 }
 
+function DomainAdapterList({ items, locale }: { items: DomainSignal[]; locale: LocaleCode }) {
+  return (
+    <div className="mt-4 space-y-3">
+      {items.map((domain) => {
+        const meta = domainMeta[domain.key]
+        const Icon = meta.icon
+        return (
+          <a
+            key={domain.key}
+            className="flex items-start gap-3 rounded-lg border border-line bg-white/70 p-3 hover:border-stone-300"
+            href={domain.homepage_url}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white" style={{ color: meta.accent }}>
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-ink">{domainLabel(locale, domain.key, domain.label)}</span>
+              <span className="block break-all text-xs text-muted">{domain.category}</span>
+            </span>
+            <ExternalLink className="ml-auto h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+          </a>
+        )
+      })}
+    </div>
+  )
+}
+
 export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; locale: LocaleCode }) {
   const pipeline = useQuery({
     queryKey: ['life-pipeline'],
@@ -52,6 +83,8 @@ export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; loca
   const releaseData = release.data
   const sources = domains.flatMap((domain) => domain.sources)
   const uniqueSources = Array.from(new Map(sources.map((source) => [source.key, source])).values())
+  const mvpSisters = domains.filter((domain) => mvpSisterKeys.includes(domain.key as (typeof mvpSisterKeys)[number]))
+  const otherDomains = domains.filter((domain) => !mvpSisterKeys.includes(domain.key as (typeof mvpSisterKeys)[number]))
 
   return (
     <div className="space-y-5">
@@ -78,6 +111,15 @@ export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; loca
             </span>
           </div>
         </div>
+      </AtlasPanel>
+
+      <AtlasPanel>
+        <div className="flex items-center gap-2 text-emerald-800">
+          <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+          <h2 className="text-xl font-semibold">{t(locale, 'trust')}</h2>
+        </div>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{t(locale, 'sourceRegistryIntro')}</p>
+        <DomainAdapterList items={mvpSisters} locale={locale} />
       </AtlasPanel>
 
       <AtlasPanel>
@@ -207,31 +249,8 @@ export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; loca
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <AtlasPanel>
-          <p className="atlas-label">{t(locale, 'currentAdapters')}</p>
-          <div className="mt-4 space-y-3">
-            {domains.map((domain) => {
-              const meta = domainMeta[domain.key]
-              const Icon = meta.icon
-              return (
-                <a
-                  key={domain.key}
-                  className="flex items-start gap-3 rounded-lg border border-line bg-white/70 p-3 hover:border-stone-300"
-                  href={domain.homepage_url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white" style={{ color: meta.accent }}>
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-semibold text-ink">{domainLabel(locale, domain.key, domain.label)}</span>
-                    <span className="block break-all text-xs text-muted">{domain.category}</span>
-                  </span>
-                  <ExternalLink className="ml-auto h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                </a>
-              )
-            })}
-          </div>
+          <p className="atlas-label">{t(locale, 'allSources')}</p>
+          <DomainAdapterList items={otherDomains} locale={locale} />
         </AtlasPanel>
 
         <AtlasPanel>
