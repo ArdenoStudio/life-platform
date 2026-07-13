@@ -82,14 +82,14 @@ export function ComparePage({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <PulseKicker>{t(locale, 'compareAgainst')}</PulseKicker>
-            <p className="mt-1 text-sm text-paper/80">{t(locale, 'compareDistricts')}</p>
+            <p className="mt-1 text-sm text-muted">{t(locale, 'compareDistricts')}</p>
           </div>
-          <Scale className="h-6 w-6 text-gold" aria-hidden="true" />
+          <Scale className="h-6 w-6 text-accent" aria-hidden="true" />
         </div>
-        <label className="mt-4 grid gap-2 text-sm font-semibold text-paper">
+        <label className="mt-4 grid gap-2 text-sm font-semibold text-foreground">
           {t(locale, 'compareAgainst')}
           <select
-            className="h-11 rounded-lg border border-white/15 bg-white/10 px-3 text-sm text-paper focus:outline-none focus:ring-2 focus:ring-gold/50"
+            className="h-11 rounded-lg border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-gold/50"
             onChange={(event) => setCompareDistrict(event.target.value)}
             value={compareDistrict}
           >
@@ -107,19 +107,19 @@ export function ComparePage({
       <section className="grid gap-5 xl:grid-cols-[0.7fr_1.3fr]">
         <PulsePanel>
           <PulseKicker>{t(locale, 'costOfLife')}</PulseKicker>
-          <p className="mt-1 text-sm text-paper/80">{t(locale, 'compareDelta')}</p>
-          <p className="mt-2 text-3xl font-semibold text-paper">{formatLkr(Math.abs(costDelta))}</p>
-          <p className="mt-2 text-sm leading-6 text-paper/75">
+          <p className="mt-1 text-sm text-muted">{t(locale, 'compareDelta')}</p>
+          <p className="mt-2 text-3xl font-semibold text-foreground">{formatLkr(Math.abs(costDelta))}</p>
+          <p className="mt-2 text-sm leading-6 text-muted">
             {costDelta === 0
               ? t(locale, 'compareDistrictsEven')
               : t(locale, 'compareDistrictHigher').replace('{district}', costDelta > 0 ? district : compareDistrict)}
           </p>
           <div className="mt-5 space-y-3">
             {[primary.data, comparison.data].filter(Boolean).map((item) => (
-              <div key={item!.district} className="rounded-lg border border-white/12 bg-white/8 p-3">
-                <p className="text-sm font-semibold text-paper">{item!.district}</p>
-                <p className="mt-1 text-2xl font-semibold text-paper">{formatCompactLkr(item!.total_monthly_lkr)}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.14em] text-paper/65">
+              <div key={item!.district} className="rounded-lg border border-border bg-elevated p-3">
+                <p className="text-sm font-semibold text-foreground">{item!.district}</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{formatCompactLkr(item!.total_monthly_lkr)}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.14em] text-subtle">
                   {t(locale, 'compareConfidence').replace('{confidence}', item!.confidence)}
                 </p>
               </div>
@@ -145,32 +145,32 @@ export function ComparePage({
 
       <PulsePanel>
         <PulseKicker>{t(locale, 'compareDistricts')}</PulseKicker>
-        <p className="mt-1 text-sm text-paper/80">
+        <p className="mt-1 text-sm text-muted">
           {district} {t(locale, 'compareTo')} {compareDistrict} · {profileLabel(locale, profile)}
         </p>
 
         <div className="mt-5 space-y-3 md:hidden">
           {sisterRows.map((row) => (
-            <article key={row.key} className="rounded-lg border border-white/12 bg-white/8 p-4">
-              <p className="font-semibold text-paper">{t(locale, row.kicker)}</p>
-              <p className="mt-1 text-xs text-paper/70">
+            <article key={row.key} className="rounded-lg border border-border bg-elevated p-4">
+              <p className="font-semibold text-foreground">{t(locale, row.kicker)}</p>
+              <p className="mt-1 text-xs text-muted">
                 {row.topMetric?.label ?? domainLabel(locale, row.key, row.domain?.label ?? row.key)}
               </p>
               <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt className="text-xs text-paper/65">{district}</dt>
-                  <dd className="font-semibold text-paper">
+                  <dt className="text-xs text-subtle">{district}</dt>
+                  <dd className="font-semibold text-foreground">
                     {row.leftValue !== null ? formatLkr(row.leftValue) : t(locale, 'compareNotAvailable')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-paper/65">{compareDistrict}</dt>
-                  <dd className="font-semibold text-paper">
+                  <dt className="text-xs text-subtle">{compareDistrict}</dt>
+                  <dd className="font-semibold text-foreground">
                     {row.rightValue !== null ? formatLkr(row.rightValue) : t(locale, 'compareNotAvailable')}
                   </dd>
                 </div>
               </dl>
-              <p className="mt-3 text-sm font-semibold text-gold">
+              <p className="mt-3 text-sm font-semibold text-accent">
                 {t(locale, 'compareDelta')}:{' '}
                 {row.delta !== null ? (
                   row.delta === 0 ? '—' : formatLkr(Math.abs(row.delta))
@@ -185,7 +185,7 @@ export function ComparePage({
         <div className="mt-5 hidden overflow-x-auto md:block">
           <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-white/12 text-left text-xs uppercase tracking-[0.14em] text-paper/65">
+              <tr className="border-b border-border text-left text-xs uppercase tracking-[0.14em] text-subtle">
                 <th className="py-3 pr-4">{t(locale, 'compareMetric')}</th>
                 <th className="py-3 pr-4" style={{ color: domainMeta.food.accent }}>
                   {district}
@@ -200,28 +200,28 @@ export function ComparePage({
               {sisterRows.map((row) => (
                 <tr key={row.key}>
                   <td className="py-3 pr-4">
-                    <p className="font-semibold text-paper">{t(locale, row.kicker)}</p>
-                    <p className="mt-1 text-xs text-paper/70">
+                    <p className="font-semibold text-foreground">{t(locale, row.kicker)}</p>
+                    <p className="mt-1 text-xs text-muted">
                       {row.topMetric?.label ?? domainLabel(locale, row.key, row.domain?.label ?? row.key)}
                     </p>
                     {row.topMetric ? (
-                      <p className="mt-1 text-xs text-paper/70">
+                      <p className="mt-1 text-xs text-muted">
                         {t(locale, 'compareMetric')}: {formatMetric(row.topMetric.value, row.topMetric.unit)}
                       </p>
                     ) : null}
                   </td>
-                  <td className="py-3 pr-4 text-paper/80">
+                  <td className="py-3 pr-4 text-muted">
                     {row.leftValue !== null ? formatLkr(row.leftValue) : t(locale, 'compareNotAvailable')}
                   </td>
-                  <td className="py-3 pr-4 text-paper/80">
+                  <td className="py-3 pr-4 text-muted">
                     {row.rightValue !== null ? formatLkr(row.rightValue) : t(locale, 'compareNotAvailable')}
                   </td>
-                  <td className="py-3 font-semibold text-paper">
+                  <td className="py-3 font-semibold text-foreground">
                     {row.delta !== null ? (
                       <>
                         {row.delta === 0 ? '—' : formatLkr(Math.abs(row.delta))}
                         {row.delta !== 0 ? (
-                          <span className="ml-1 text-xs font-semibold text-paper/65">
+                          <span className="ml-1 text-xs font-semibold text-subtle">
                             ({row.delta > 0 ? district : compareDistrict})
                           </span>
                         ) : null}

@@ -18,14 +18,14 @@ export function PageContextBar({
   title: string
 }) {
   return (
-    <header className="space-y-1">
+    <header className="space-y-1 border-b border-border pb-4">
       <PulseKicker>{kicker}</PulseKicker>
-      <h1 className="font-display text-2xl font-extrabold tracking-tight text-paper md:text-3xl">{title}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h1>
       <PulseSubtitle>
         {district} · {profileLabel(locale, profile)}
         {subtitle ? ` · ${subtitle}` : ''}
       </PulseSubtitle>
-      <p className="text-xs text-paper/70">{t(locale, 'contextInHeader')}</p>
+      <p className="text-xs text-subtle">{t(locale, 'contextInHeader')}</p>
     </header>
   )
 }

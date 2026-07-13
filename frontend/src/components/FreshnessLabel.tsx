@@ -1,8 +1,8 @@
 import { formatDate } from '../lib/format'
 
 const variantClasses = {
-  light: 'rounded-md border border-line bg-stone-50 px-2 py-1 text-xs font-semibold text-muted',
-  dark: 'rounded-md border border-white/15 bg-white/10 px-2 py-1 text-xs font-semibold text-paper/85',
+  light: 'rounded-pill border border-border bg-elevated px-2.5 py-1 text-xs font-semibold text-muted',
+  dark: 'rounded-pill border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted',
 }
 
 export function FreshnessLabel({

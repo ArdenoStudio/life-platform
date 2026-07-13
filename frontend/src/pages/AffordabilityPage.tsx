@@ -45,10 +45,10 @@ export function AffordabilityPage({
       <section className="grid gap-5 xl:grid-cols-[0.75fr_1.25fr]">
         <PulsePanel tone="muted">
           <PulseKicker>Ariva affordability index</PulseKicker>
-          <h2 className="mt-3 font-display text-4xl font-extrabold tabular-nums text-paper">
+          <h2 className="mt-3 font-display text-4xl font-extrabold tabular-nums text-foreground">
             {data ? formatLkr(data.total_monthly_lkr) : 'Loading'}
           </h2>
-          <p className="mt-3 text-sm leading-6 text-paper/75">
+          <p className="mt-3 text-sm leading-6 text-muted">
             {data ? `${data.district}, ${profileLabel(locale, data.profile)} profile, ${data.confidence} confidence.` : 'Calculating current household basket.'}
           </p>
           <div className="mt-6 grid gap-3">
@@ -59,7 +59,7 @@ export function AffordabilityPage({
               tone="gold"
               value={data ? formatLkr(data.total_monthly_lkr) : '—'}
             />
-            <p className="flex items-center gap-2 text-sm text-paper/75">
+            <p className="flex items-center gap-2 text-sm text-muted">
               <MapPin className="h-4 w-4" aria-hidden="true" />
               Generated {data ? formatDate(data.generated_at) : 'after source refresh'}
             </p>
@@ -70,9 +70,9 @@ export function AffordabilityPage({
           <div className="flex items-center justify-between gap-4">
             <div>
               <PulseKicker>{t(locale, 'basketComponents')}</PulseKicker>
-              <h2 className="mt-1 text-2xl font-semibold text-paper">Household cost pressure</h2>
+              <h2 className="mt-1 text-2xl font-semibold text-foreground">Household cost pressure</h2>
             </div>
-            <Calculator className="h-5 w-5 text-gold" aria-hidden="true" />
+            <Calculator className="h-5 w-5 text-accent" aria-hidden="true" />
           </div>
           <div className="mt-5 h-80" role="img" aria-label="Household cost pressure chart">
             {chartData.length ? (
@@ -86,7 +86,7 @@ export function AffordabilityPage({
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="grid h-full place-items-center text-sm text-paper/70">Loading breakdown…</div>
+              <div className="grid h-full place-items-center text-sm text-muted">Loading breakdown…</div>
             )}
           </div>
         </PulsePanel>
@@ -99,11 +99,11 @@ export function AffordabilityPage({
             {data?.breakdown.map((item) => (
               <div key={item.key} className="grid gap-3 py-4 md:grid-cols-[1fr_auto]">
                 <div>
-                  <p className="font-semibold text-paper">{item.label}</p>
-                  <p className="mt-1 text-sm leading-6 text-paper/75">{item.note}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-paper/65">{item.confidence} confidence</p>
+                  <p className="font-semibold text-foreground">{item.label}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted">{item.note}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-subtle">{item.confidence} confidence</p>
                 </div>
-                <p className="text-xl font-semibold text-paper">{formatLkr(item.monthly_lkr)}</p>
+                <p className="text-xl font-semibold text-foreground">{formatLkr(item.monthly_lkr)}</p>
               </div>
             ))}
           </div>
@@ -114,7 +114,7 @@ export function AffordabilityPage({
           <div className="mt-4 space-y-3">
             {data?.assumptions.map((assumption) => (
               <PulseInnerCard key={assumption}>
-                <p className="text-sm leading-6 text-paper/80">{assumption}</p>
+                <p className="text-sm leading-6 text-muted">{assumption}</p>
               </PulseInnerCard>
             ))}
           </div>

@@ -136,25 +136,25 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
         <div className="grid gap-5 lg:grid-cols-[1fr_24rem]">
           <div>
             <PulseKicker>{t(locale, 'token')}</PulseKicker>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-paper/75">{t(locale, 'operatorIntro')}</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{t(locale, 'operatorIntro')}</p>
           </div>
           <form
-            className="rounded-lg border border-white/15 bg-white/10 p-3"
+            className="rounded-lg border border-border bg-surface p-3"
             onSubmit={(event) => {
               event.preventDefault()
               if (canReview) void releases.refetch()
             }}
           >
-            <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-paper/70" htmlFor="operator-token">
+            <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-muted" htmlFor="operator-token">
               {t(locale, 'token')}
             </label>
             <div className="mt-2 flex gap-2">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface">
                 <KeyRound className="h-4 w-4" aria-hidden="true" />
               </span>
               <input
                 autoComplete="off"
-                className="h-10 min-w-0 flex-1 rounded-lg border border-white/15 bg-white/10 px-3 text-sm text-paper outline-none placeholder:text-paper/45"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none placeholder:text-foreground/45"
                 id="operator-token"
                 onChange={(event) => setToken(event.target.value)}
                 placeholder="LIFE_INTERNAL_TOKEN"
@@ -163,7 +163,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               />
             </div>
             <button
-              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-gold/55 bg-gold/15 px-3 text-sm font-bold text-gold hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-45"
+              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-accent/55 bg-accent/15 px-3 text-sm font-bold text-accent hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-45"
               disabled={!canReview || releases.isFetching}
               type="submit"
             >

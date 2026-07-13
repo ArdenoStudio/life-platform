@@ -44,10 +44,10 @@ function DomainAdapterList({ items, locale }: { items: DomainSignal[]; locale: L
               <Icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <span className="min-w-0">
-              <span className="block font-semibold text-paper">{domainLabel(locale, domain.key, domain.label)}</span>
-              <span className="block break-all text-xs text-paper/70">{domain.category}</span>
+              <span className="block font-semibold text-foreground">{domainLabel(locale, domain.key, domain.label)}</span>
+              <span className="block break-all text-xs text-muted">{domain.category}</span>
             </span>
-            <ExternalLink className="ml-auto h-4 w-4 shrink-0 text-paper/65" aria-hidden="true" />
+            <ExternalLink className="ml-auto h-4 w-4 shrink-0 text-subtle" aria-hidden="true" />
           </a>
         )
       })}
@@ -96,7 +96,7 @@ export function SourcesPage({
         <div className="grid gap-5 lg:grid-cols-[1fr_16rem]">
           <div>
             <PulseKicker>{t(locale, 'sourceRegistry')}</PulseKicker>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-paper/80">{t(locale, 'sourceRegistryIntro')}</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{t(locale, 'sourceRegistryIntro')}</p>
           </div>
           <div className={`source-network border p-3 ${pulseInnerCardClass}`}>
             <span
@@ -117,19 +117,19 @@ export function SourcesPage({
 
       <PulsePanel>
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-gold" aria-hidden="true" />
-          <h2 className="text-xl font-semibold text-paper">{t(locale, 'trust')}</h2>
+          <ShieldCheck className="h-5 w-5 text-accent" aria-hidden="true" />
+          <h2 className="text-xl font-semibold text-foreground">{t(locale, 'trust')}</h2>
         </div>
         <DomainAdapterList items={mvpSisters} locale={locale} />
       </PulsePanel>
 
       <PulsePanel>
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-gold" aria-hidden="true" />
-          <h2 className="text-xl font-semibold text-paper">{t(locale, 'sourceValidation')}</h2>
+          <ShieldCheck className="h-5 w-5 text-accent" aria-hidden="true" />
+          <h2 className="text-xl font-semibold text-foreground">{t(locale, 'sourceValidation')}</h2>
         </div>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-paper/75">{t(locale, 'sourceValidationIntro')}</p>
-        <p className={`mt-3 p-3 text-sm font-medium text-paper ${pulseInnerCardClass}`}>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{t(locale, 'sourceValidationIntro')}</p>
+        <p className={`mt-3 p-3 text-sm font-medium text-foreground ${pulseInnerCardClass}`}>
           {validationData?.summary ?? statusLabel(locale, 'loading')}
         </p>
         <PulseInnerCard className="mt-4">
@@ -139,12 +139,12 @@ export function SourcesPage({
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-paper">{t(locale, 'activeSourceRelease')}</h3>
+                <h3 className="font-semibold text-foreground">{t(locale, 'activeSourceRelease')}</h3>
                 <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${glassStatusTone(releaseData?.status === 'promoted' ? 'pass' : 'watch')}`}>
                   {releaseData?.status === 'promoted' ? t(locale, 'promotedRelease') : releaseData ? t(locale, 'seedFallback') : statusLabel(locale, 'loading')}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-5 text-paper/75">{releaseData?.note ?? t(locale, 'sourceReleaseIntro')}</p>
+              <p className="mt-2 text-sm leading-5 text-muted">{releaseData?.note ?? t(locale, 'sourceReleaseIntro')}</p>
             </div>
           </div>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
@@ -157,20 +157,20 @@ export function SourcesPage({
               },
             ].map((item) => (
               <div key={item.label} className={pulseInnerCardClass}>
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-paper/65">{item.label}</dt>
-                <dd className="mt-1 break-all font-semibold text-paper">{item.value}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">{item.label}</dt>
+                <dd className="mt-1 break-all font-semibold text-foreground">{item.value}</dd>
               </div>
             ))}
             <div className={pulseInnerCardClass}>
-              <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-paper/65">{t(locale, 'sources')}</dt>
+              <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">{t(locale, 'sources')}</dt>
               <dd className="mt-2 flex flex-wrap gap-1.5">
                 {(releaseData?.source_keys ?? []).slice(0, 6).map((key) => (
-                  <span key={key} className="rounded-md border border-white/12 bg-white/10 px-2 py-1 text-xs font-semibold text-paper/75">
+                  <span key={key} className="rounded-md border border-border bg-surface px-2 py-1 text-xs font-semibold text-muted">
                     {key}
                   </span>
                 ))}
                 {releaseData && releaseData.source_keys.length === 0 ? (
-                  <span className="text-xs text-paper/70">reviewed seed data</span>
+                  <span className="text-xs text-muted">reviewed seed data</span>
                 ) : null}
               </dd>
             </div>
@@ -183,10 +183,10 @@ export function SourcesPage({
                 <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${glassStatusTone(check.status)}`}>
                   {validationLabel(check.status)}
                 </span>
-                <h3 className="font-semibold text-paper">{check.label}</h3>
+                <h3 className="font-semibold text-foreground">{check.label}</h3>
               </div>
-              <p className="mt-2 text-sm leading-5 text-paper/75">{check.message}</p>
-              <ul className="mt-3 space-y-1 text-xs leading-5 text-paper/70">
+              <p className="mt-2 text-sm leading-5 text-muted">{check.message}</p>
+              <ul className="mt-3 space-y-1 text-xs leading-5 text-muted">
                 {check.evidence.slice(0, 3).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -202,18 +202,18 @@ export function SourcesPage({
           <div className="mt-4 space-y-3 md:hidden">
             {(data?.domains ?? []).map((domain) => (
               <PulseInnerCard key={domain.domain}>
-                <p className="font-semibold text-paper">{domainLabel(locale, domain.domain, domain.label)}</p>
-                <p className="mt-1 text-sm text-paper/75">
+                <p className="font-semibold text-foreground">{domainLabel(locale, domain.domain, domain.label)}</p>
+                <p className="mt-1 text-sm text-muted">
                   {statusLabel(locale, domain.status)} · {domain.health_score}/100
                 </p>
-                <p className="mt-1 text-xs text-paper/65">{domain.freshness_note}</p>
+                <p className="mt-1 text-xs text-subtle">{domain.freshness_note}</p>
               </PulseInnerCard>
             ))}
           </div>
           <div className="mt-4 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/12 text-xs uppercase tracking-[0.14em] text-paper/65">
+                <tr className="border-b border-border text-xs uppercase tracking-[0.14em] text-subtle">
                   <th className="py-3 pr-4">{t(locale, 'domain')}</th>
                   <th className="py-3 pr-4">{t(locale, 'status')}</th>
                   <th className="py-3 pr-4">{t(locale, 'score')}</th>
@@ -224,15 +224,15 @@ export function SourcesPage({
               <tbody className="divide-y divide-white/10">
                 {(data?.domains ?? []).map((domain) => (
                   <tr key={domain.domain}>
-                    <td className="py-3 pr-4 font-semibold text-paper">{domainLabel(locale, domain.domain, domain.label)}</td>
+                    <td className="py-3 pr-4 font-semibold text-foreground">{domainLabel(locale, domain.domain, domain.label)}</td>
                     <td className="py-3 pr-4">
                       <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${statusTone(domain.status)}`}>
                         {statusLabel(locale, domain.status)}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 text-paper/80">{domain.health_score}/100</td>
-                    <td className="py-3 pr-4 text-paper/80">{formatDate(domain.last_updated_at)}</td>
-                    <td className="py-3 text-paper/80">{domain.freshness_note}</td>
+                    <td className="py-3 pr-4 text-muted">{domain.health_score}/100</td>
+                    <td className="py-3 pr-4 text-muted">{formatDate(domain.last_updated_at)}</td>
+                    <td className="py-3 text-muted">{domain.freshness_note}</td>
                   </tr>
                 ))}
               </tbody>
@@ -261,8 +261,8 @@ export function SourcesPage({
 
         <PulsePanel>
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-gold" aria-hidden="true" />
-            <h2 className="text-xl font-semibold text-paper">{t(locale, 'activeSourceRegistry')}</h2>
+            <CheckCircle2 className="h-5 w-5 text-accent" aria-hidden="true" />
+            <h2 className="text-xl font-semibold text-foreground">{t(locale, 'activeSourceRegistry')}</h2>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {uniqueSources.map((source) => (
@@ -273,17 +273,17 @@ export function SourcesPage({
                     {source.review_status.replace('_', ' ')}
                   </span>
                 </div>
-                <dl className="mt-3 grid gap-2 text-xs text-paper/75 sm:grid-cols-2">
+                <dl className="mt-3 grid gap-2 text-xs text-muted sm:grid-cols-2">
                   <div>
-                    <dt className="font-semibold uppercase tracking-[0.12em] text-paper/60">Owner</dt>
+                    <dt className="font-semibold uppercase tracking-[0.12em] text-foreground/60">Owner</dt>
                     <dd className="mt-1">{source.owner}</dd>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase tracking-[0.12em] text-paper/60">Refresh</dt>
+                    <dt className="font-semibold uppercase tracking-[0.12em] text-foreground/60">Refresh</dt>
                     <dd className="mt-1">{source.refresh_cadence}</dd>
                   </div>
                 </dl>
-                <p className="mt-2 text-xs leading-5 text-paper/70">{source.governance_note}</p>
+                <p className="mt-2 text-xs leading-5 text-muted">{source.governance_note}</p>
               </article>
             ))}
           </div>
@@ -292,10 +292,10 @@ export function SourcesPage({
 
       <PulsePanel>
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-gold" aria-hidden="true" />
-          <h2 className="text-xl font-semibold text-paper">{t(locale, 'dataLimits')}</h2>
+          <AlertTriangle className="h-5 w-5 text-accent" aria-hidden="true" />
+          <h2 className="text-xl font-semibold text-foreground">{t(locale, 'dataLimits')}</h2>
         </div>
-        <div className="mt-4 grid gap-3 text-sm leading-6 text-paper/80 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 text-sm leading-6 text-muted md:grid-cols-3">
           <p className={pulseInnerCardClass}>{t(locale, 'dataLimit1')}</p>
           <p className={pulseInnerCardClass}>{t(locale, 'dataLimit2')}</p>
           <p className={pulseInnerCardClass}>{t(locale, 'dataLimit3')}</p>

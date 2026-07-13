@@ -62,13 +62,13 @@ export function Shell({
   user: LifeAuthUser | null
 }) {
   return (
-    <div className="min-h-screen overflow-x-clip">
-      <header className="floating-shell">
-        <div className="mx-auto w-full max-w-[1480px] px-3 py-3 lg:px-6">
-          <div className="floating-surface flex flex-col gap-3 px-3 py-3">
+    <div className="min-h-screen overflow-x-clip bg-canvas pb-16 md:pb-0">
+      <header className="desk-shell">
+        <div className="mx-auto w-full max-w-[1480px] px-4 py-3 lg:px-6">
+          <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <button
-                className="flex items-center gap-3 text-left"
+                className="flex shrink-0 items-center gap-3 text-left"
                 onClick={() => setActivePage('home')}
                 onFocus={() => preloadPage?.('home')}
                 onMouseEnter={() => preloadPage?.('home')}
@@ -76,8 +76,13 @@ export function Shell({
               >
                 <BrandMark compact />
                 <span>
-                  <span className="block font-display text-xl font-extrabold leading-none tracking-tight text-paper">{t(locale, 'brandName')}</span>
-                  <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-gold">{t(locale, 'livingAtlas')}</span>
+                  <span className="font-display block text-xl font-bold leading-none tracking-tight text-foreground">
+                    {t(locale, 'brandName')}
+                  </span>
+                  <span className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent">
+                    {t(locale, 'livingAtlas')}
+                  </span>
+                  <span className="mt-0.5 block text-[0.6rem] font-medium text-subtle">by Ardeno Studio</span>
                 </span>
               </button>
 
@@ -89,59 +94,59 @@ export function Shell({
                     <button
                       key={item.key}
                       aria-current={active ? 'page' : undefined}
-                      className={`nav-button min-h-11 ${active ? 'active' : ''}`}
+                      className={`desk-nav-pill min-h-9 ${active ? 'active' : ''}`}
                       onClick={() => setActivePage(item.key)}
                       onFocus={() => preloadPage?.(item.key)}
                       onMouseEnter={() => preloadPage?.(item.key)}
                       type="button"
                     >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                       {t(locale, item.labelKey)}
                     </button>
                   )
                 })}
               </nav>
 
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_auto_auto]">
-                <label className="shell-context-field">
-                  <Map className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(7rem,1fr)_minmax(7rem,1fr)_auto_auto]">
+                <label className="desk-context-field">
+                  <Map className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <select
                     aria-label={t(locale, 'homeDistrict')}
-                    className="shell-context-field__control"
+                    className="desk-context-field__control"
                     onChange={(event) => setDistrict(event.target.value)}
                     value={district}
                   >
                     {districts.filter((item) => item !== 'Sri Lanka').map((item) => (
-                      <option key={item} className="bg-ink text-paper" value={item}>
+                      <option key={item} className="bg-elevated text-foreground" value={item}>
                         {item}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="shell-context-field">
+                <label className="desk-context-field">
                   <select
                     aria-label={t(locale, 'profile')}
-                    className="shell-context-field__control"
+                    className="desk-context-field__control"
                     onChange={(event) => setProfile(event.target.value as Profile)}
                     value={profile}
                   >
                     {profiles.map((item) => (
-                      <option key={item.key} className="bg-ink text-paper" value={item.key}>
+                      <option key={item.key} className="bg-elevated text-foreground" value={item.key}>
                         {profileLabel(locale, item.key)}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="shell-context-field">
-                  <Globe2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <label className="desk-context-field">
+                  <Globe2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <select
                     aria-label={t(locale, 'locale')}
-                    className="shell-context-field__control"
+                    className="desk-context-field__control"
                     onChange={(event) => setLocale(event.target.value as LocaleCode)}
                     value={locale}
                   >
                     {localeOptions.map((item) => (
-                      <option key={item.key} className="bg-ink text-paper" value={item.key}>
+                      <option key={item.key} className="bg-elevated text-foreground" value={item.key}>
                         {item.label}
                       </option>
                     ))}
@@ -151,18 +156,18 @@ export function Shell({
                   user ? (
                     <button
                       aria-label={unreadCount > 0 ? `${t(locale, 'signOut')} (${unreadCount} ${t(locale, 'unreadNotifications')})` : t(locale, 'signOut')}
-                      className="inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-bold text-paper hover:bg-white/15"
+                      className="inline-flex h-9 min-h-9 items-center justify-center gap-2 rounded-desk border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:bg-elevated"
                       onClick={() => void signOut()}
                       title={user.email ?? user.displayName ?? t(locale, 'signOut')}
                       type="button"
                     >
                       <Bell className="h-4 w-4" aria-hidden="true" />
-                      {unreadCount > 0 ? <span className="rounded bg-gold px-1.5 py-0.5 text-xs text-ink">{unreadCount}</span> : null}
+                      {unreadCount > 0 ? <span className="rounded-pill bg-accent px-1.5 py-0.5 text-xs font-bold text-black">{unreadCount}</span> : null}
                       <LogOut className="h-4 w-4" aria-hidden="true" />
                     </button>
                   ) : (
                     <button
-                      className="inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-lg border border-gold/55 bg-gold/15 px-3 text-sm font-bold text-gold hover:bg-gold/20"
+                      className="inline-flex h-9 min-h-9 items-center justify-center gap-2 rounded-desk border border-accent bg-accent px-3 text-sm font-bold text-black hover:bg-accent-dim"
                       disabled={authLoading}
                       onClick={() => void signIn()}
                       type="button"
@@ -194,7 +199,7 @@ export function Shell({
         </div>
       </header>
 
-      <main className="pulse-main relative mx-auto w-full max-w-[1480px] px-3 py-5 lg:px-6 lg:py-6">{children}</main>
+      <main className="desk-main relative mx-auto w-full max-w-[1480px] px-4 py-5 lg:px-6 lg:py-6">{children}</main>
     </div>
   )
 }

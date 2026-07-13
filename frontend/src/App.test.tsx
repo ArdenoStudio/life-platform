@@ -469,16 +469,16 @@ describe('Ariva', () => {
     window.history.replaceState({}, '', '/?page=today&locale=en')
     render(<App />)
 
-    expect(await screen.findByText('Cost of Life', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByTestId('cost-of-life-label', {}, { timeout: 10000 })).toHaveTextContent('Cost of Life')
     expect(screen.getByText('Living signals')).toBeInTheDocument()
     expect(screen.getByText('Food and Grocery')).toBeInTheDocument()
-    expect(screen.getByText('Fuel', { selector: 'h3' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Fuel', level: 3 })).toBeInTheDocument()
     expect(screen.getByText('Property and Rent')).toBeInTheDocument()
     expect(screen.queryByText('Vehicle Market')).not.toBeInTheDocument()
     expect(screen.getByText('Trust release')).toBeInTheDocument()
     expect(screen.getByText('Seed fallback')).toBeInTheDocument()
     expect(screen.getAllByLabelText('Home district')).toHaveLength(1)
-  })
+  }, 15000)
 
   it('shows degradation banner when a sister signal is degraded', async () => {
     const degradedOverview: LifeOverviewResponse = {

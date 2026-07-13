@@ -50,10 +50,10 @@ export function IntelligencePage({
       <section className="grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
         <PulsePanel tone="muted">
           <div className="flex items-center gap-2">
-            <Brain className="h-6 w-6 text-gold" aria-hidden="true" />
+            <Brain className="h-6 w-6 text-accent" aria-hidden="true" />
             <PulseKicker>{t(locale, 'search')}</PulseKicker>
           </div>
-          <p className="mt-3 text-sm leading-6 text-paper/75">{t(locale, 'intelligenceIntro')}</p>
+          <p className="mt-3 text-sm leading-6 text-muted">{t(locale, 'intelligenceIntro')}</p>
           <div className="mt-6">
             <PulseSearchField
               className="[&_.pulse-search-field__input]:h-11"
@@ -69,8 +69,8 @@ export function IntelligencePage({
 
         <PulsePanel>
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-gold" aria-hidden="true" />
-            <h2 className="text-2xl font-semibold text-paper">{t(locale, 'publicInsightCards')}</h2>
+            <TrendingUp className="h-5 w-5 text-accent" aria-hidden="true" />
+            <h2 className="text-2xl font-semibold text-foreground">{t(locale, 'publicInsightCards')}</h2>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             {insights?.insights.map((item) => (
@@ -100,17 +100,17 @@ export function IntelligencePage({
       <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
         <PulsePanel>
           <PulseKicker>{t(locale, 'retailSubstitution')}</PulseKicker>
-          <h2 className="mt-1 text-2xl font-semibold text-paper">{t(locale, 'publicRetailQuotes')}</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-foreground">{t(locale, 'publicRetailQuotes')}</h2>
           <div className="mt-5 space-y-3">
             {retail?.offers.map((offer) => (
               <PulseInnerCard key={`${offer.item_name}-${offer.retailer}-${offer.price_lkr}`} className="flex items-start justify-between gap-4">
                 <span>
-                  <span className="block font-semibold text-paper">{offer.item_name}</span>
-                  <span className="block text-xs text-paper/70">
+                  <span className="block font-semibold text-foreground">{offer.item_name}</span>
+                  <span className="block text-xs text-muted">
                     {offer.retailer} / {offer.unit} / {offer.confidence}
                   </span>
                 </span>
-                <span className="text-right font-semibold text-paper">
+                <span className="text-right font-semibold text-foreground">
                   {formatLkrLocale(offer.price_lkr, locale === 'en' ? 'en-LK' : locale)}
                 </span>
               </PulseInnerCard>
@@ -120,14 +120,14 @@ export function IntelligencePage({
 
         <PulsePanel>
           <PulseKicker>{t(locale, 'domainMovement')}</PulseKicker>
-          <h2 className="mt-1 text-2xl font-semibold text-paper">{t(locale, 'fastestPublicSignals')}</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-foreground">{t(locale, 'fastestPublicSignals')}</h2>
           {weatherDomain ? (
             <div className="mt-5 rounded-lg border border-steel/35 bg-steel/15 p-4 text-[#d9ecff]">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">Weather and risk watch</p>
               <p className="mt-2 font-semibold">{weatherDomain.highlights[0]?.value}</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {weatherDomain.metrics.slice(0, 4).map((metric) => (
-                  <div key={metric.label} className="rounded-lg border border-white/12 bg-white/8 p-3">
+                  <div key={metric.label} className="rounded-lg border border-border bg-elevated p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] opacity-80">{metric.label}</p>
                     <p className="mt-1 text-lg font-semibold">{formatMetric(metric.value, metric.unit)}</p>
                   </div>
@@ -146,18 +146,18 @@ export function IntelligencePage({
                   <PulseInnerCard key={domain.key}>
                     <div className="flex items-center justify-between gap-3">
                       <Icon className="h-5 w-5" style={{ color: meta.accent }} aria-hidden="true" />
-                      <span className="rounded-md border border-white/12 bg-white/10 px-2 py-1 text-xs font-semibold text-paper/80">
+                      <span className="rounded-md border border-border bg-surface px-2 py-1 text-xs font-semibold text-muted">
                         {statusLabel(locale, domain.status)}
                       </span>
                     </div>
-                    <p className="mt-3 font-semibold text-paper">{domainLabel(locale, domain.key, domain.label)}</p>
-                    <p className="mt-1 text-sm leading-5 text-paper/75">
+                    <p className="mt-3 font-semibold text-foreground">{domainLabel(locale, domain.key, domain.label)}</p>
+                    <p className="mt-1 text-sm leading-5 text-muted">
                       {domain.highlights[0]?.label}: {domain.highlights[0]?.value}
                     </p>
                     {isSignedIn ? (
                       <div className="mt-4 flex gap-2">
                         <button
-                          className="inline-flex h-9 min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 text-xs font-semibold text-paper hover:bg-white/15"
+                          className="inline-flex h-9 min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-2 text-xs font-semibold text-foreground hover:bg-elevated"
                           onClick={() => onSaveDomain(domain.key)}
                           type="button"
                         >
@@ -165,7 +165,7 @@ export function IntelligencePage({
                           Save
                         </button>
                         <button
-                          className="inline-flex h-9 min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-gold/40 bg-gold/15 px-2 text-xs font-semibold text-gold hover:bg-gold/25"
+                          className="inline-flex h-9 min-h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-accent/40 bg-accent/15 px-2 text-xs font-semibold text-accent hover:bg-accent/25"
                           onClick={() => onCreateAlert(domain.key)}
                           type="button"
                         >

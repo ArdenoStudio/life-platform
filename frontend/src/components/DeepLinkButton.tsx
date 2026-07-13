@@ -23,14 +23,14 @@ export function DeepLinkButton({
 
   return (
     <a
-      className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-leaf hover:text-leaf/80"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-dim"
       href={platformUrl}
       onClick={() => trackEvent('pulse.deep_link_click', { platform, sister })}
       rel="noopener noreferrer"
       target="_blank"
     >
       {children ?? t(locale, 'viewOnPlatform').replace('{platform}', platform)}
-      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
     </a>
   )
 }

@@ -3,17 +3,21 @@ import { domainMeta, formatMetric } from '../lib/format'
 import type { Confidence, DomainSignal, LocaleCode, SourceType } from '../types'
 import { DeepLinkButton } from './DeepLinkButton'
 import { FreshnessLabel } from './FreshnessLabel'
-import { PulsePanel } from './PulsePanel'
 import { SourceClassPill } from './SourceClassPill'
 import { StatusBadge } from './StatusBadge'
 
 type SisterKickerKey = Extract<I18nKey, 'sisterFood' | 'sisterFuel' | 'sisterShelter'>
 
+const rowAccentClass: Record<string, string> = {
+  food: 'desk-signal-row--food',
+  fuel: 'desk-signal-row--fuel',
+  property: 'desk-signal-row--property',
+}
+
 export function SisterSignalCard({
   domain,
   kickerKey,
   locale,
-  variant = 'paper',
 }: {
   domain: DomainSignal
   kickerKey: SisterKickerKey
@@ -26,56 +30,48 @@ export function SisterSignalCard({
   const sourceClass: SourceType = primarySource?.source_type ?? 'platform'
   const confidence: Confidence = primarySource?.confidence ?? 'medium'
   const topMetric = domain.metrics[0]
-
-  const isGlass = variant === 'glass'
+  const accentClass = rowAccentClass[domain.key] ?? ''
 
   return (
-    <PulsePanel as="article" className="h-full" tone={isGlass ? 'glass' : 'paper'}>
+    <article className={`desk-signal-row ${accentClass}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-4">
           <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${isGlass ? 'bg-white/10' : meta.bg}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-desk border border-border bg-elevated"
             style={{ color: meta.accent }}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
           </span>
-          <div className="min-w-0">
-            <p className={`text-xs font-extrabold uppercase tracking-[0.14em] ${isGlass ? 'text-gold' : 'text-muted'}`}>
-              {t(locale, kickerKey)}
-            </p>
-            <h3 className={`mt-1 text-lg font-bold ${isGlass ? 'text-paper' : 'text-ink'}`}>
-              {domainLabel(locale, domain.key, domain.label)}
-            </h3>
-            <p className={`mt-1 text-sm leading-6 ${isGlass ? 'text-paper/85' : 'text-muted'}`}>{domain.summary}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{t(locale, kickerKey)}</p>
+              <StatusBadge locale={locale} status={domain.status} />
+            </div>
+            <h3 className="mt-1 text-base font-semibold text-foreground">{domainLabel(locale, domain.key, domain.label)}</h3>
+            <p className="mt-1 text-sm leading-6 text-muted">{domain.summary}</p>
           </div>
         </div>
-        <StatusBadge locale={locale} status={domain.status} />
+
+        {topMetric ? (
+          <div className="shrink-0 text-right">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{topMetric.label}</p>
+            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">
+              {formatMetric(topMetric.value, topMetric.unit)}
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      {topMetric ? (
-        <div
-          className={`mt-4 rounded-lg border p-3 ${isGlass ? 'border-white/12 bg-black/20' : 'border-stone-200 bg-stone-50'}`}
-        >
-          <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${isGlass ? 'text-paper/75' : 'text-muted'}`}>
-            {topMetric.label}
-          </p>
-          <p className={`mt-1 text-xl font-bold tabular-nums ${isGlass ? 'text-paper' : 'text-ink'}`}>
-            {formatMetric(topMetric.value, topMetric.unit)}
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+          <SourceClassPill locale={locale} sourceType={sourceClass} variant="dark" />
+          <span className="rounded-pill border border-border bg-elevated px-2.5 py-1 text-muted">
+            {t(locale, 'compareConfidence').replace('{confidence}', confidence)}
+          </span>
+          <FreshnessLabel freshnessNote={domain.freshness_note} observedAt={domain.observed_at} variant="dark" />
         </div>
-      ) : null}
-
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold">
-        <SourceClassPill locale={locale} sourceType={sourceClass} variant={isGlass ? 'dark' : 'light'} />
-        <span
-          className={`rounded-md border px-2 py-1 ${isGlass ? 'border-white/15 bg-white/10 text-paper/85' : 'border-line bg-stone-50 text-muted'}`}
-        >
-          {t(locale, 'compareConfidence').replace('{confidence}', confidence)}
-        </span>
-        <FreshnessLabel freshnessNote={domain.freshness_note} observedAt={domain.observed_at} variant={isGlass ? 'dark' : 'light'} />
+        <DeepLinkButton href={domain.homepage_url} locale={locale} platform={domain.label} sister={domain.key} />
       </div>
-
-      <DeepLinkButton href={domain.homepage_url} locale={locale} platform={domain.label} sister={domain.key} />
-    </PulsePanel>
+    </article>
   )
 }

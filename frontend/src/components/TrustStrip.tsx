@@ -6,18 +6,10 @@ import { PulsePanel } from './PulsePanel'
 
 const sisterKeys: DomainKey[] = ['food', 'fuel', 'property']
 
-function releaseBadgeTone(status?: PublicSourceReleaseResponse['status'], variant: 'glass' | 'paper' = 'paper') {
-  if (status === 'promoted') {
-    return variant === 'glass'
-      ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-100'
-      : 'border-emerald-300/40 bg-emerald-500/10 text-emerald-900'
-  }
-  if (status === 'seed_fallback') {
-    return variant === 'glass'
-      ? 'border-amber-400/35 bg-amber-500/15 text-amber-100'
-      : 'border-amber-300/40 bg-amber-500/10 text-amber-900'
-  }
-  return variant === 'glass' ? 'border-white/15 bg-white/10 text-paper/85' : 'border-line bg-stone-50 text-muted'
+function releaseBadgeTone(status?: PublicSourceReleaseResponse['status']) {
+  if (status === 'promoted') return 'border-positive/40 bg-positive/10 text-positive'
+  if (status === 'seed_fallback') return 'border-warning/40 bg-warning/10 text-warning'
+  return 'border-border bg-elevated text-muted'
 }
 
 function releaseBadgeLabel(locale: LocaleCode, sourceRelease: PublicSourceReleaseResponse | undefined) {
@@ -30,7 +22,6 @@ export function TrustStrip({
   domains,
   locale,
   sourceRelease,
-  variant = 'paper',
 }: {
   domains: DomainSignal[]
   locale: LocaleCode
@@ -49,17 +40,17 @@ export function TrustStrip({
         </PulsePanel>
       ) : null}
 
-      <PulsePanel className="flex flex-wrap items-center justify-between gap-3" tone={variant}>
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <ShieldCheck className="h-4 w-4 text-gold" aria-hidden="true" />
+      <PulsePanel className="flex flex-wrap items-center justify-between gap-3" tone="surface">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <ShieldCheck className="h-4 w-4 text-accent" aria-hidden="true" />
           <span>{t(locale, 'trustRelease')}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-lg border px-3 py-1 text-xs font-extrabold ${releaseBadgeTone(sourceRelease?.status, variant)}`}>
+          <span className={`rounded-desk border px-3 py-1 text-xs font-bold ${releaseBadgeTone(sourceRelease?.status)}`}>
             {releaseBadgeLabel(locale, sourceRelease)}
           </span>
           {sourceRelease?.active_release_key ? (
-            <code className="rounded-md border border-white/15 bg-black/20 px-2 py-1 text-xs font-semibold text-paper/80">
+            <code className="rounded-desk border border-border bg-elevated px-2 py-1 text-xs font-mono text-muted">
               {sourceRelease.active_release_key}
             </code>
           ) : null}

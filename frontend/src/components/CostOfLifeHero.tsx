@@ -1,6 +1,5 @@
-import { Minus, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
-import { MetricTile } from './MetricTile'
 import { SourceClassPill } from './SourceClassPill'
 import { profileLabel, t } from '../i18n'
 import { formatLkrLocale } from '../lib/format'
@@ -35,9 +34,9 @@ function trendLabel(locale: LocaleCode, trend: Trend) {
 }
 
 function trendTone(trend: Trend) {
-  if (trend === 'up') return 'border-chili/35 bg-chili/15 text-[#ffd7d2]'
-  if (trend === 'down') return 'border-leaf/35 bg-leaf/15 text-[#d9f5e8]'
-  return 'border-white/15 bg-white/10 text-paper/80'
+  if (trend === 'up') return 'border-negative/40 bg-negative/10 text-negative'
+  if (trend === 'down') return 'border-positive/40 bg-positive/10 text-positive'
+  return 'border-border bg-elevated text-muted'
 }
 
 function TrendIcon({ trend }: { trend: Trend }) {
@@ -58,49 +57,54 @@ export function CostOfLifeHero({
   const weightTeaser = formatWeightTeaser(locale, survivalIndex.weights)
   const hasIndexScore = survivalIndex.index_score != null
 
+  const heroValue = hasIndexScore
+    ? `${Math.round(survivalIndex.index_score!)}`
+    : formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)
+
+  const heroSuffix = hasIndexScore ? '/100' : '/mo'
+
   return (
-    <div className="grid gap-3">
+    <div className="desk-score-hero">
       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
         <SourceClassPill locale={locale} sourceType="derived" />
-        <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 ${trendTone(trend)}`}>
+        <span className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 ${trendTone(trend)}`}>
           <TrendIcon trend={trend} />
           {trendLabel(locale, trend)}
         </span>
-        <span className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-paper/80">
+        <span className="rounded-pill border border-border bg-elevated px-2.5 py-1 text-muted">
           {t(locale, 'compareConfidence').replace('{confidence}', survivalIndex.confidence)}
         </span>
         {weightTeaser ? (
-          <span
-            className="rounded-md border border-gold/30 bg-gold/10 px-2 py-1 text-[#fff0bd]"
-            title={t(locale, 'costOfLifeWeights')}
-          >
+          <span className="rounded-pill border border-accent/30 bg-accent/10 px-2.5 py-1 text-accent" title={t(locale, 'costOfLifeWeights')}>
             {weightTeaser}
           </span>
         ) : null}
       </div>
 
-      <MetricTile
-        icon={WalletCards}
-        label={survivalIndex.label}
-        note={`${survivalIndex.district} / ${profileLabel(locale, survivalIndex.profile)}`}
-        tone="gold"
-        value={
-          hasIndexScore
-            ? `${Math.round(survivalIndex.index_score!)}/100`
-            : formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)
-        }
-      />
-      <MetricTile
-        icon={WalletCards}
-        label={t(locale, 'dailyTotal')}
-        note={
-          hasIndexScore
-            ? `${t(locale, 'monthlyPressureCurve')}: ${formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)} · ${trendLabel(locale, trend)}`
-            : survivalIndex.disclaimer
-        }
-        tone="blue"
-        value={formatLkrLocale(survivalIndex.daily_lkr, lkrLocale)}
-      />
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted" data-testid="cost-of-life-label">
+          {survivalIndex.label}
+        </p>
+        <p className="desk-score-hero__value mt-1">
+          {heroValue}
+          <span className="desk-score-hero__suffix">{heroSuffix}</span>
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          {survivalIndex.district} · {profileLabel(locale, survivalIndex.profile)}
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-desk border border-border bg-elevated p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{t(locale, 'dailyTotal')}</p>
+          <p className="mt-1 font-mono text-xl font-bold text-foreground">{formatLkrLocale(survivalIndex.daily_lkr, lkrLocale)}</p>
+        </div>
+        <div className="rounded-desk border border-border bg-elevated p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{t(locale, 'monthlyPressureCurve')}</p>
+          <p className="mt-1 font-mono text-xl font-bold text-foreground">{formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)}</p>
+          <p className="mt-2 text-xs leading-5 text-subtle">{survivalIndex.disclaimer}</p>
+        </div>
+      </div>
     </div>
   )
 }

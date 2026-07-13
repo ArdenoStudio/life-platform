@@ -7,29 +7,29 @@ export const domainMeta: Record<
   { accent: string; bg: string; icon: LucideIcon; label: string; short: string }
 > = {
   food: {
-    accent: '#912a20',
-    bg: 'bg-red-50',
+    accent: '#f97316',
+    bg: 'bg-food/10',
     icon: ShoppingBasket,
     label: 'Food and Grocery',
     short: 'Food',
   },
   fuel: {
-    accent: '#255378',
-    bg: 'bg-sky-50',
+    accent: '#f59e0b',
+    bg: 'bg-fuel/10',
     icon: Fuel,
     label: 'Fuel',
     short: 'Fuel',
   },
   property: {
-    accent: '#225e45',
-    bg: 'bg-emerald-50',
+    accent: '#14b8a6',
+    bg: 'bg-shelter/10',
     icon: Home,
     label: 'Property and Rent',
     short: 'Property',
   },
   vehicle: {
-    accent: '#d5aa41',
-    bg: 'bg-amber-50',
+    accent: '#3b82f6',
+    bg: 'bg-vehicle/10',
     icon: Car,
     label: 'Vehicle Market',
     short: 'Vehicle',
@@ -213,23 +213,23 @@ export function formatDate(value: string | null | undefined) {
 }
 
 export function statusTone(status: SourceStatus) {
-  if (status === 'healthy') return 'text-emerald-800 bg-emerald-50 border-emerald-200'
-  if (status === 'degraded') return 'text-amber-800 bg-amber-50 border-amber-200'
-  return 'text-red-800 bg-red-50 border-red-200'
+  if (status === 'healthy') return 'border-positive/40 bg-positive/10 text-positive'
+  if (status === 'degraded') return 'border-warning/40 bg-warning/10 text-warning'
+  return 'border-negative/40 bg-negative/10 text-negative'
 }
 
 export function severityTone(severity: string) {
-  if (severity === 'good') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (severity === 'watch') return 'border-amber-200 bg-amber-50 text-amber-800'
-  if (severity === 'risk') return 'border-red-200 bg-red-50 text-red-800'
-  return 'border-stone-200 bg-stone-50 text-stone-700'
+  if (severity === 'good') return 'border-positive/40 bg-positive/10 text-positive'
+  if (severity === 'watch') return 'border-warning/40 bg-warning/10 text-warning'
+  if (severity === 'risk') return 'border-negative/40 bg-negative/10 text-negative'
+  return 'border-border bg-elevated text-muted'
 }
 
 export function sourceTypeTone(type: string) {
-  if (type === 'official') return 'border-leaf/25 bg-leaf/10 text-leaf'
-  if (type === 'platform') return 'border-steel/25 bg-steel/10 text-steel'
-  if (type === 'retail') return 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800'
-  return 'border-gold/30 bg-gold/10 text-[#735313]'
+  if (type === 'official') return 'border-positive/40 bg-positive/10 text-positive'
+  if (type === 'platform') return 'border-vehicle/40 bg-vehicle/10 text-vehicle'
+  if (type === 'retail') return 'border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-300'
+  return 'border-accent/40 bg-accent/10 text-accent'
 }
 
 export function numericMetricRows(metrics: { label: string; value: number | string | null; unit: string | null }[]) {

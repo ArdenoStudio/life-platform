@@ -28,8 +28,8 @@ export function DomainPanel({
             </span>
             <div className="min-w-0">
               <PulseKicker>{domain.category}</PulseKicker>
-              <h3 className="mt-1 text-xl font-semibold leading-tight text-paper">{domain.label}</h3>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-paper/75">{domain.summary}</p>
+              <h3 className="mt-1 text-xl font-semibold leading-tight text-foreground">{domain.label}</h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{domain.summary}</p>
             </div>
           </div>
           <StatusBadge locale={locale} status={domain.status} />
@@ -38,9 +38,9 @@ export function DomainPanel({
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {domain.metrics.slice(0, 4).map((metric) => (
             <PulseInnerCard key={`${domain.key}-${metric.label}`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-paper/65">{metric.label}</p>
-              <p className="mt-1 break-words text-lg font-semibold text-paper">{formatMetric(metric.value, metric.unit)}</p>
-              {metric.description ? <p className="mt-2 text-xs leading-5 text-paper/70">{metric.description}</p> : null}
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">{metric.label}</p>
+              <p className="mt-1 break-words text-lg font-semibold text-foreground">{formatMetric(metric.value, metric.unit)}</p>
+              {metric.description ? <p className="mt-2 text-xs leading-5 text-muted">{metric.description}</p> : null}
             </PulseInnerCard>
           ))}
         </div>
@@ -59,24 +59,24 @@ export function DomainPanel({
           </div>
 
           <PulseInnerCard>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-paper/65">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-subtle">
               <Database className="h-4 w-4" aria-hidden="true" />
               Source state
             </div>
-            <dl className="mt-3 space-y-2 text-sm text-paper/75">
+            <dl className="mt-3 space-y-2 text-sm text-muted">
               <div className="flex justify-between gap-4">
                 <dt>Last update</dt>
-                <dd className="text-right text-paper">{formatDate(domain.last_updated_at)}</dd>
+                <dd className="text-right text-foreground">{formatDate(domain.last_updated_at)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt>Health score</dt>
-                <dd className="text-right text-paper">{domain.health_score}/100</dd>
+                <dd className="text-right text-foreground">{domain.health_score}/100</dd>
               </div>
             </dl>
-            <p className="mt-3 text-xs leading-5 text-paper/70">{domain.freshness_note}</p>
+            <p className="mt-3 text-xs leading-5 text-muted">{domain.freshness_note}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a
-                className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-paper hover:bg-white/15"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-elevated"
                 href={domain.homepage_url}
                 rel="noreferrer"
                 target="_blank"
@@ -85,7 +85,7 @@ export function DomainPanel({
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               </a>
               <a
-                className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-paper hover:bg-white/15"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-elevated"
                 href={domain.source_url}
                 rel="noreferrer"
                 target="_blank"

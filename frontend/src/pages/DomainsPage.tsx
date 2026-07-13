@@ -66,7 +66,7 @@ export function DomainsPage({
                 <button
                   key={domain.key}
                   className={`flex w-full min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
-                    activeItem ? 'border border-gold/40 bg-gold/15 text-gold' : 'text-paper hover:bg-white/8'
+                    activeItem ? 'border border-accent/40 bg-accent/15 text-accent' : 'text-foreground hover:bg-white/8'
                   }`}
                   onClick={() => onDomainFocusChange?.(domain.key)}
                   type="button"
@@ -74,7 +74,7 @@ export function DomainsPage({
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold">{domain.label}</span>
-                    <span className={`block truncate text-xs ${activeItem ? 'text-gold/80' : 'text-paper/65'}`}>{domain.status}</span>
+                    <span className={`block truncate text-xs ${activeItem ? 'text-accent/80' : 'text-subtle'}`}>{domain.status}</span>
                   </span>
                 </button>
               )
@@ -90,10 +90,10 @@ export function DomainsPage({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <PulseKicker>Metric spread</PulseKicker>
-                  <h2 className="mt-1 text-2xl font-semibold text-paper">{active.label}</h2>
+                  <h2 className="mt-1 text-2xl font-semibold text-foreground">{active.label}</h2>
                 </div>
                 <a
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-semibold text-paper hover:bg-white/15"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:bg-elevated"
                   href={active.api_base}
                   rel="noreferrer"
                   target="_blank"
@@ -114,7 +114,7 @@ export function DomainsPage({
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="grid h-full place-items-center rounded-lg border border-dashed border-white/15 text-sm text-paper/70">
+                  <div className="grid h-full place-items-center rounded-lg border border-dashed border-border text-sm text-muted">
                     Numeric metrics are not available for this source yet.
                   </div>
                 )}
@@ -123,19 +123,19 @@ export function DomainsPage({
 
             <PulsePanel>
               <PulseKicker>Source payload</PulseKicker>
-              <h2 className="mt-1 text-2xl font-semibold text-paper">Top items</h2>
+              <h2 className="mt-1 text-2xl font-semibold text-foreground">Top items</h2>
               <div className="mt-5 divide-y divide-white/10">
                 {active.top_items.length ? (
                   active.top_items.slice(0, 8).map((item, index) => (
                     <div key={`${active.key}-${index}`} className="grid grid-cols-[1fr_auto] gap-3 py-3 text-sm">
-                      <span className="min-w-0 font-semibold text-paper">{readItem(item, ['label', 'item_name', 'fuel_type', 'title', 'model'])}</span>
-                      <span className="text-right text-paper/75">
+                      <span className="min-w-0 font-semibold text-foreground">{readItem(item, ['label', 'item_name', 'fuel_type', 'title', 'model'])}</span>
+                      <span className="text-right text-muted">
                         {formatMetric(readOptionalItem(item, ['price', 'avg_price', 'amount', 'value']), readOptionalItem(item, ['unit']))}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className={`p-4 text-sm text-paper/75 ${pulseInnerCardClass}`}>This adapter has summary signals but no item list yet.</p>
+                  <p className={`p-4 text-sm text-muted ${pulseInnerCardClass}`}>This adapter has summary signals but no item list yet.</p>
                 )}
               </div>
             </PulsePanel>
