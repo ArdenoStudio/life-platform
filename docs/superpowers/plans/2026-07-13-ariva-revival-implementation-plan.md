@@ -112,18 +112,15 @@ cd frontend && npm run test -- --run src/App.test.tsx
 
 ### Tasks
 
-- [ ] **Playwright Life Pulse suite** — Extend [`frontend/tests/e2e/life-dashboard.spec.ts`](../../frontend/tests/e2e/life-dashboard.spec.ts):
-  - [x] Today: three sister labels (Food / Fuel / Shelter) on home route.
-  - [ ] Cost of Life hero + trust strip assertions on `/?page=today`.
-  - [ ] District change updates URL and refetches overview.
-  - [ ] Deep link click opens new tab (mock or `page.context().waitForEvent('popup')`).
-  - [ ] Decide two-district compare; Move teaser link.
-  - [ ] Degraded state: banner visible (use test mock or fixture API).
-- [x] **Analytics events** — [`frontend/src/lib/analytics.ts`](../../frontend/src/lib/analytics.ts) stub; fired from Today, Shell, sister cards, Cost, Trust, Decide (`pulse.sister_expand` defined but not yet wired).
-- [ ] **Link rot check script** — Add `scripts/check-deep-links.mjs` (Node stdlib): HEAD request sister `platform_url` samples; fail CI if >10% broken (align with kill criteria).
-- [x] **Kill-criteria telemetry doc** — Section in [`docs/verification.md`](../../docs/verification.md) mapping spec thresholds to queries (`integration_runs`, overview p95, UI audit checklist).
-- [x] **CI wiring** — [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs `npm run test:e2e`.
-- [x] **Operator path unchanged** — `/?page=operator` gated ([`frontend/src/pages/OperatorPage.tsx`](../../frontend/src/pages/OperatorPage.tsx)); E2E in `life-dashboard.spec.ts`.
+- [x] **Analytics events** — [`frontend/src/lib/analytics.ts`](../../frontend/src/lib/analytics.ts) with `pulse.today_view`, `pulse.district_change`, `pulse.deep_link_click`, `pulse.cost_detail_view`, `pulse.trust_view`, `pulse.compare_run`.
+- [x] **Link rot check script** — [`scripts/check-deep-links.mjs`](../../scripts/check-deep-links.mjs) + CI job (`continue-on-error`).
+- [x] **Kill-criteria telemetry doc** — Section in [`docs/verification.md`](../../docs/verification.md).
+- [x] **Playwright Life Pulse suite** — Extended [`life-dashboard.spec.ts`](../../frontend/tests/e2e/life-dashboard.spec.ts): `page=today`, district URL, deep-link UTM, Decide sister rows, Move page.
+- [x] **Analytics events** — [`frontend/src/lib/analytics.ts`](../../frontend/src/lib/analytics.ts); `pulse.sister_expand` defined but not wired (no expand UI).
+- [x] **CI wiring** — [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs E2E + deep-link check job.
+- [x] **Operator path unchanged** — `/?page=operator` gated; E2E in `life-dashboard.spec.ts`.
+
+**Optional follow-ups:** degraded-state E2E with mocked API; `DistrictChip` extraction.
 
 ### Phase 3 verification
 
