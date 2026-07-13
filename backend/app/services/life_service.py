@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal
 
 import httpx
 from sqlalchemy import desc, select
@@ -453,16 +453,22 @@ class LifeService:
 
     async def overview(self, db: Session, *, district: str = "Sri Lanka", profile: str = "family") -> LifeOverviewResponse:
         domains = await self.get_domain_signals(db)
+        if profile not in PROFILE_FACTORS:
+            profile = "family"
+        prior_snapshot = db.scalar(
+            select(LifeIndexSnapshot)
+            .where(LifeIndexSnapshot.district == district, LifeIndexSnapshot.profile == profile)
+            .order_by(desc(LifeIndexSnapshot.observed_at), desc(LifeIndexSnapshot.id))
+            .limit(1)
+        )
         affordability = self.affordability_from_signals(db, domains, district=district, profile=profile)
-        cost = await self.cost_command(db, district=district, profile=profile, locale="en")
         confidence = "medium" if all(domain.status != "offline" for domain in domains) else "low"
-        survival_index = SurvivalIndexResponse(
-            district=cost.district,
-            profile=cost.profile,
-            monthly_lkr=cost.total_monthly_lkr,
-            daily_lkr=cost.daily_lkr,
+        survival_index = self._mvp_survival_index(
+            domains,
+            district,
+            profile,
             confidence=confidence,
-            disclaimer=cost.assumptions[0] if cost.assumptions else "This is a public planning estimate, not a personal finance account.",
+            prior_snapshot=prior_snapshot,
         )
         health = self.source_health(domains)
         movers = self.top_movers(domains)
@@ -602,6 +608,65 @@ class LifeService:
         )
         db.commit()
         return response
+
+    def _mvp_survival_monthly(self, domains: list[DomainSignal], *, district: str, profile: str) -> float:
+        if profile not in PROFILE_FACTORS:
+            profile = "family"
+        factors = PROFILE_FACTORS[profile]
+        domain_map = {domain.key: domain for domain in domains}
+
+        food_basket = self._metric_value(domain_map.get("food"), "Essentials basket") or 8650
+        petrol_92 = self._metric_value(domain_map.get("fuel"), "Petrol 92") or 410
+        avg_property_price = self._metric_value(domain_map.get("property"), "Average price")
+
+        rent_base = DISTRICT_RENT_BASE.get(district, DISTRICT_RENT_BASE.get("Sri Lanka", 55000))
+        if avg_property_price and avg_property_price > 1_000_000:
+            rent_base = max(rent_base, min(avg_property_price * 0.0022, 185000))
+
+        food_monthly = food_basket * factors["food_baskets"]
+        fuel_monthly = petrol_92 * factors["fuel_litres"]
+        shelter_monthly = rent_base * factors["housing"]
+
+        return round(0.45 * food_monthly + 0.20 * fuel_monthly + 0.35 * shelter_monthly, 0)
+
+    def _mvp_survival_trend(self, current_total: float, prior_snapshot: LifeIndexSnapshot | None) -> Literal["up", "down", "flat"]:
+        if prior_snapshot is None:
+            return "flat"
+        if current_total > prior_snapshot.total_lkr:
+            return "up"
+        if current_total < prior_snapshot.total_lkr:
+            return "down"
+        return "flat"
+
+    def _mvp_survival_index(
+        self,
+        domains: list[DomainSignal],
+        district: str,
+        profile: str,
+        *,
+        confidence: Literal["high", "medium", "low"],
+        prior_snapshot: LifeIndexSnapshot | None = None,
+    ) -> SurvivalIndexResponse:
+        if profile not in PROFILE_FACTORS:
+            profile = "family"
+        weighted_total = self._mvp_survival_monthly(domains, district=district, profile=profile)
+        baseline = self._mvp_survival_monthly(domains, district="Sri Lanka", profile=profile)
+        index_score = round(100 * weighted_total / baseline) if baseline > 0 else 100.0
+        trend = self._mvp_survival_trend(weighted_total, prior_snapshot)
+        return SurvivalIndexResponse(
+            district=district,
+            profile=profile,
+            monthly_lkr=weighted_total,
+            daily_lkr=round(weighted_total / 30.4, 0),
+            confidence=confidence,
+            label="Cost of Life",
+            disclaimer=(
+                "MVP Cost of Life uses food (45%), fuel (20%), and shelter (35%) planning weights "
+                "indexed to Sri Lanka baseline (100). This is a public planning estimate, not a personal finance account."
+            ),
+            index_score=index_score,
+            trend=trend,
+        )
 
     def source_health(self, domains: list[DomainSignal]) -> dict[str, int | float]:
         healthy = sum(1 for domain in domains if domain.status == "healthy")

@@ -147,6 +147,8 @@ def test_life_overview_returns_all_domains(client):
     assert survival["confidence"] in {"high", "medium", "low"}
     assert survival["label"] == "Cost of Life"
     assert survival["disclaimer"]
+    assert survival["index_score"] == 100
+    assert survival["trend"] == "flat"
     assert {domain["key"] for domain in payload["domains"]} == {
         "food",
         "fuel",
@@ -187,6 +189,7 @@ def test_life_overview_returns_all_domains(client):
 
 
 def test_life_overview_survival_index_is_district_specific(client):
+    national = client.get("/api/v1/life/overview?district=Sri%20Lanka&profile=commuter").json()["survival_index"]
     response = client.get("/api/v1/life/overview?district=Colombo&profile=commuter")
     assert response.status_code == 200
     payload = response.json()
@@ -194,7 +197,24 @@ def test_life_overview_survival_index_is_district_specific(client):
     survival = payload["survival_index"]
     assert survival["district"] == "Colombo"
     assert survival["profile"] == "commuter"
-    assert survival["monthly_lkr"] > payload["affordability"]["total_monthly_lkr"]
+    assert survival["index_score"] == national["index_score"]
+    assert survival["monthly_lkr"] == national["monthly_lkr"]
+    assert survival["monthly_lkr"] < payload["affordability"]["total_monthly_lkr"]
+    assert survival["trend"] in {"up", "down", "flat"}
+    assert round(survival["daily_lkr"], 0) == round(survival["monthly_lkr"] / 30.4, 0)
+
+
+def test_life_overview_survival_index_uses_mvp_weights(client):
+    response = client.get("/api/v1/life/overview?district=Kandy&profile=family")
+    assert response.status_code == 200
+    survival = response.json()["survival_index"]
+    assert survival["label"] == "Cost of Life"
+    assert "45%" in survival["disclaimer"]
+    assert "20%" in survival["disclaimer"]
+    assert "35%" in survival["disclaimer"]
+    assert survival["index_score"] is not None
+    assert survival["monthly_lkr"] > 0
+    assert survival["monthly_lkr"] < response.json()["affordability"]["total_monthly_lkr"]
 
 
 def test_life_domains_records_snapshots(client):

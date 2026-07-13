@@ -273,6 +273,8 @@ class SurvivalIndexResponse(BaseModel):
     confidence: Confidence
     label: str = "Cost of Life"
     disclaimer: str
+    index_score: float | None = None
+    trend: Literal["up", "down", "flat"] | None = None
 
 
 class LifeOverviewResponse(BaseModel):
