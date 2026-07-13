@@ -2,7 +2,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Activity, Archive, DatabaseZap, FileText, GitBranch, KeyRound, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 
-import { AtlasPanel } from '../components/AtlasPanel'
+import { PageContextBar } from '../components/PageContextBar'
+import { paperStatusTone, PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { t } from '../i18n'
 import {
   addSourceDataReleaseNote,
@@ -24,9 +25,7 @@ function releaseStatusTone(status: SourceDataReleaseSummary['status']) {
 }
 
 function checkTone(status: 'pass' | 'watch' | 'fail') {
-  if (status === 'pass') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (status === 'watch') return 'border-amber-200 bg-amber-50 text-amber-800'
-  return 'border-rose-200 bg-rose-50 text-rose-800'
+  return paperStatusTone(status)
 }
 
 function errorMessage(error: unknown) {
@@ -124,12 +123,20 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
 
   return (
     <div className="space-y-5">
-      <AtlasPanel className="bg-ink text-paper">
+      <PageContextBar
+        district="Sri Lanka"
+        kicker={t(locale, 'operatorConsole')}
+        locale={locale}
+        profile="family"
+        subtitle={t(locale, 'operatorIntro')}
+        title="Source release review"
+      />
+
+      <PulsePanel tone="muted">
         <div className="grid gap-5 lg:grid-cols-[1fr_24rem]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">{t(locale, 'operatorConsole')}</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal">Source release review</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-paper/72">{t(locale, 'operatorIntro')}</p>
+            <PulseKicker>{t(locale, 'token')}</PulseKicker>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-paper/75">{t(locale, 'operatorIntro')}</p>
           </div>
           <form
             className="rounded-lg border border-white/15 bg-white/10 p-3"
@@ -165,29 +172,29 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
             </button>
           </form>
         </div>
-      </AtlasPanel>
+      </PulsePanel>
 
       {releases.error ? (
-        <AtlasPanel className="border-rose-200 bg-rose-50 text-rose-900">
+        <PulsePanel className="border-rose-200 bg-rose-50 text-rose-900">
           <p className="font-semibold">Internal review request failed.</p>
           <p className="mt-1 text-sm">{errorMessage(releases.error)}</p>
-        </AtlasPanel>
+        </PulsePanel>
       ) : null}
 
       {officialCostError ? (
-        <AtlasPanel className="border-rose-200 bg-rose-50 text-rose-900">
+        <PulsePanel className="border-rose-200 bg-rose-50 text-rose-900">
           <p className="font-semibold">Official cost evidence request failed.</p>
           <p className="mt-1 text-sm">{errorMessage(officialCostError)}</p>
-        </AtlasPanel>
+        </PulsePanel>
       ) : null}
 
       {message ? (
-        <AtlasPanel className="border-emerald-200 bg-emerald-50 text-emerald-900">
+        <PulsePanel className="border-emerald-200 bg-emerald-50 text-emerald-900">
           <p className="font-semibold">{message}</p>
-        </AtlasPanel>
+        </PulsePanel>
       ) : null}
 
-      <AtlasPanel>
+      <PulsePanel tone="paper">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 text-emerald-800">
@@ -295,10 +302,10 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
             {officialCostArtifacts.isFetched ? 'No official cost evidence artifacts yet.' : 'Run or load the official cost evidence review.'}
           </p>
         )}
-      </AtlasPanel>
+      </PulsePanel>
 
       <section className="grid gap-5 xl:grid-cols-[0.86fr_1.14fr]">
-        <AtlasPanel>
+        <PulsePanel tone="paper">
           <div className="flex items-center gap-2 text-emerald-800">
             <GitBranch className="h-5 w-5" aria-hidden="true" />
             <h2 className="text-xl font-semibold">Active release</h2>
@@ -364,9 +371,9 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               {canReview && !releases.isFetching ? t(locale, 'noReleases') : 'Paste the internal token and load release evidence.'}
             </p>
           )}
-        </AtlasPanel>
+        </PulsePanel>
 
-        <AtlasPanel>
+        <PulsePanel tone="paper">
           <div className="flex items-center gap-2 text-emerald-800">
             <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             <h2 className="text-xl font-semibold">{t(locale, 'releaseEvidence')}</h2>
@@ -425,7 +432,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
             ))}
             {items.length === 0 && releases.isFetched ? <p className="rounded-lg border border-line bg-white/75 p-4 text-sm text-muted">{t(locale, 'noReleases')}</p> : null}
           </div>
-        </AtlasPanel>
+        </PulsePanel>
       </section>
     </div>
   )

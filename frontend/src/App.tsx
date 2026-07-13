@@ -295,12 +295,12 @@ function AppContent() {
       user={auth.user}
     >
       {overviewQuery.error && domains.length === 0 ? (
-        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-400/35 bg-amber-500/12 p-4 text-[#fff4d6]">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
             <p className="font-semibold">Ariva API is not reachable from the browser.</p>
             <p className="mt-1 text-sm leading-6">
-              Start the FastAPI backend or set <code className="rounded bg-white px-1 py-0.5">VITE_API_URL</code> to the deployed
+              Start the FastAPI backend or set <code className="rounded border border-white/15 bg-white/10 px-1 py-0.5">VITE_API_URL</code> to the deployed
               backend. Ariva is built to recover as soon as the API responds.
             </p>
           </div>
@@ -356,18 +356,22 @@ function AppContent() {
         ) : null}
         {activePage === 'intelligence' ? (
           <IntelligencePage
+            district={activeDistrict}
             domains={domains}
             insights={insightsQuery.data}
             isSignedIn={Boolean(auth.user)}
             locale={activeLocale}
             onCreateAlert={(domainKey) => createAlertMutation.mutate(domainKey)}
             onSaveDomain={(domainKey) => saveDomainMutation.mutate(domainKey)}
+            profile={activeProfile}
             retail={retailQuery.data}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />
         ) : null}
-        {activePage === 'sources' ? <SourcesPage domains={domains} locale={activeLocale} /> : null}
+        {activePage === 'sources' ? (
+          <SourcesPage district={activeDistrict} domains={domains} locale={activeLocale} profile={activeProfile} />
+        ) : null}
         {activePage === 'operator' ? <OperatorPage locale={activeLocale} /> : null}
         {activePage === 'move' ? (
           <MovePage

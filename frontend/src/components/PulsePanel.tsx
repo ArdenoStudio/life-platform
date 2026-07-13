@@ -11,6 +11,22 @@ const toneClasses: Record<PulsePanelTone, string> = {
   muted: 'border-white/10 bg-white/5 text-paper/90',
 }
 
+export const pulseInnerCardClass = 'rounded-lg border border-white/12 bg-white/8'
+export const pulseFieldClass =
+  'h-11 rounded-lg border border-white/15 bg-white/10 px-3 text-sm text-paper outline-none focus:ring-2 focus:ring-gold/50'
+
+export function glassStatusTone(status: 'pass' | 'watch' | 'fail' | 'healthy' | 'degraded' | 'offline' | 'loading') {
+  if (status === 'pass' || status === 'healthy') return 'border-leaf/35 bg-leaf/15 text-[#d9f5e8]'
+  if (status === 'watch' || status === 'degraded' || status === 'loading') return 'border-gold/35 bg-gold/15 text-[#fff0bd]'
+  return 'border-chili/35 bg-chili/15 text-[#ffd7d2]'
+}
+
+export function paperStatusTone(status: 'pass' | 'watch' | 'fail') {
+  if (status === 'pass') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (status === 'watch') return 'border-amber-200 bg-amber-50 text-amber-800'
+  return 'border-rose-200 bg-rose-50 text-rose-800'
+}
+
 export function PulsePanel({
   as: Component = 'section',
   children,
@@ -37,4 +53,8 @@ export function PulseTitle({ children, className = '' }: { children: ReactNode; 
 
 export function PulseSubtitle({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <p className={`text-sm leading-6 text-paper/85 md:text-base ${className}`}>{children}</p>
+}
+
+export function PulseInnerCard({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`${pulseInnerCardClass} p-3 md:p-4 ${className}`}>{children}</div>
 }

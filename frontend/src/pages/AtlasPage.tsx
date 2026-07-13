@@ -143,13 +143,13 @@ export function AtlasPage({
                 <PropertyIcon className="h-5 w-5" aria-hidden="true" />
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-muted">{t(locale, 'sisterShelter')}</p>
-                <h2 className="mt-1 text-2xl font-semibold text-ink">{domainLabel(locale, 'property', 'PropertyLK')}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{t(locale, 'districtScoreFallback')}</p>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-paper/75">{t(locale, 'sisterShelter')}</p>
+                <h2 className="mt-1 text-2xl font-semibold text-paper">{domainLabel(locale, 'property', 'PropertyLK')}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-paper/75">{t(locale, 'districtScoreFallback')}</p>
               </div>
             </div>
             <a
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-stone-50 px-4 py-2 text-sm font-bold text-leaf hover:bg-white"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/8 px-4 py-2 text-sm font-bold text-leaf hover:bg-white"
               href={addArivaUtm(PROPERTYLK_FALLBACK_URL)}
               rel="noopener noreferrer"
               target="_blank"
@@ -200,14 +200,14 @@ export function AtlasPage({
           <div>
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-steel" aria-hidden="true" />
-              <h2 className="text-2xl font-semibold text-ink">{t(locale, 'compareDistricts')}</h2>
+              <h2 className="text-2xl font-semibold text-paper">{t(locale, 'compareDistricts')}</h2>
             </div>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{leadSummary(selected, comparison)}</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-paper/75">{leadSummary(selected, comparison)}</p>
           </div>
           <label className="atlas-control on-paper min-w-[14rem]">
             {t(locale, 'compareAgainst')}
             <select
-              className="border-line bg-white text-ink"
+              className="border-line bg-white text-paper"
               value={effectiveCompareDistrict}
               onChange={(event) => setCompareDistrict(event.target.value)}
             >
@@ -223,7 +223,7 @@ export function AtlasPage({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
-                <tr className="border-b border-line text-xs uppercase tracking-[0.14em] text-muted">
+                <tr className="border-b border-line text-xs uppercase tracking-[0.14em] text-paper/75">
                   <th className="py-3 pr-4">{t(locale, 'districtFacts')}</th>
                   <th className="py-3 pr-4">{selected?.district ?? district}</th>
                   <th className="py-3 pr-4">{comparison?.district ?? effectiveCompareDistrict}</th>
@@ -233,17 +233,17 @@ export function AtlasPage({
               <tbody className="divide-y divide-line">
                 {compareMetrics.map((metric) => (
                   <tr key={metric.key}>
-                    <td className="py-3 pr-4 font-semibold text-ink">{metric.label}</td>
-                    <td className="py-3 pr-4 text-muted">{metric.selected}</td>
-                    <td className="py-3 pr-4 text-muted">{metric.comparison}</td>
-                    <td className="py-3 font-semibold text-ink">{metric.gap}</td>
+                    <td className="py-3 pr-4 font-semibold text-paper">{metric.label}</td>
+                    <td className="py-3 pr-4 text-paper/75">{metric.selected}</td>
+                    <td className="py-3 pr-4 text-paper/75">{metric.comparison}</td>
+                    <td className="py-3 font-semibold text-paper">{metric.gap}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="rounded-lg border border-line bg-white/70 p-4">
-            <p className="atlas-label">{t(locale, 'componentGap')}</p>
+          <div className="rounded-lg border border-white/12 bg-white/8 p-4">
+            <PulseKicker>{t(locale, 'componentGap')}</PulseKicker>
             <div className="mt-4 space-y-3">
               {selected?.components.map((component) => {
                 const other = comparisonComponents.get(component.key)
@@ -251,8 +251,8 @@ export function AtlasPage({
                 return (
                   <div key={component.key}>
                     <div className="flex items-start justify-between gap-3 text-sm">
-                      <span className="font-semibold text-ink">{component.label}</span>
-                      <span className="shrink-0 font-semibold text-muted">{gap}</span>
+                      <span className="font-semibold text-paper">{component.label}</span>
+                      <span className="shrink-0 font-semibold text-paper/75">{gap}</span>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <div className="h-2 overflow-hidden rounded-full bg-stone-200">
@@ -274,7 +274,7 @@ export function AtlasPage({
         <PulsePanel>
           <div className="flex items-center gap-2">
             <MapIcon className="h-5 w-5 text-leaf" aria-hidden="true" />
-            <h2 className="text-2xl font-semibold text-ink">{t(locale, 'districtHeatPanels')}</h2>
+            <h2 className="text-2xl font-semibold text-paper">{t(locale, 'districtHeatPanels')}</h2>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {atlas?.district_scores.map((item) => (
@@ -295,14 +295,14 @@ export function AtlasPage({
         <PulsePanel>
           <div className="flex items-center gap-2">
             <Navigation className="h-5 w-5 text-chili" aria-hidden="true" />
-            <h2 className="text-2xl font-semibold text-ink">{t(locale, 'scoreAnatomy')}</h2>
+            <h2 className="text-2xl font-semibold text-paper">{t(locale, 'scoreAnatomy')}</h2>
           </div>
           <div className="mt-5 space-y-3">
             {selected?.components.map((component) => (
               <div key={component.key}>
                 <div className="flex justify-between gap-4 text-sm">
-                  <span className="font-semibold text-ink">{component.label}</span>
-                  <span className="text-muted">{component.value}</span>
+                  <span className="font-semibold text-paper">{component.label}</span>
+                  <span className="text-paper/75">{component.value}</span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-200">
                   <div className="h-full rounded-full bg-leaf" style={{ width: `${component.score}%` }} />
@@ -315,40 +315,40 @@ export function AtlasPage({
 
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <PulsePanel>
-          <p className="atlas-label">District profile</p>
+          <PulseKicker>District profile</PulseKicker>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-line bg-stone-50 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Province</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{selectedProfile?.province ?? 'National'}</p>
+            <div className="rounded-lg border border-white/12 bg-white/8 p-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-paper/75">Province</p>
+              <p className="mt-1 text-lg font-semibold text-paper">{selectedProfile?.province ?? 'National'}</p>
             </div>
-            <div className="rounded-lg border border-line bg-stone-50 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Population</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{formatNumber(selectedProfile?.population)}</p>
+            <div className="rounded-lg border border-white/12 bg-white/8 p-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-paper/75">Population</p>
+              <p className="mt-1 text-lg font-semibold text-paper">{formatNumber(selectedProfile?.population)}</p>
             </div>
-            <div className="rounded-lg border border-line bg-stone-50 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Households</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{formatNumber(selectedProfile?.households)}</p>
+            <div className="rounded-lg border border-white/12 bg-white/8 p-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-paper/75">Households</p>
+              <p className="mt-1 text-lg font-semibold text-paper">{formatNumber(selectedProfile?.households)}</p>
             </div>
-            <div className="rounded-lg border border-line bg-stone-50 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Density</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{formatNumber(selectedProfile?.density_per_sqkm, 1)}/sqkm</p>
+            <div className="rounded-lg border border-white/12 bg-white/8 p-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-paper/75">Density</p>
+              <p className="mt-1 text-lg font-semibold text-paper">{formatNumber(selectedProfile?.density_per_sqkm, 1)}/sqkm</p>
             </div>
-            <div className="rounded-lg border border-line bg-stone-50 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Cooking gas share</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{formatPercent(selectedProfile?.cooking_gas_share)}</p>
+            <div className="rounded-lg border border-white/12 bg-white/8 p-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-paper/75">Cooking gas share</p>
+              <p className="mt-1 text-lg font-semibold text-paper">{formatPercent(selectedProfile?.cooking_gas_share)}</p>
             </div>
-            <div className="rounded-lg border border-line bg-stone-50 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">60+ share</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{formatPercent(selectedProfile?.elderly_share)}</p>
+            <div className="rounded-lg border border-white/12 bg-white/8 p-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-paper/75">60+ share</p>
+              <p className="mt-1 text-lg font-semibold text-paper">{formatPercent(selectedProfile?.elderly_share)}</p>
             </div>
           </div>
         </PulsePanel>
 
         <PulsePanel>
-          <p className="atlas-label">Score methodology</p>
+          <PulseKicker>Score methodology</PulseKicker>
           <div className="mt-4 space-y-3">
             {(atlas?.methodology ?? []).map((item) => (
-              <p key={item} className="rounded-lg border border-line bg-white/70 p-3 text-sm leading-6 text-muted">
+              <p key={item} className="rounded-lg border border-white/12 bg-white/8 p-3 text-sm leading-6 text-paper/75">
                 {item}
               </p>
             ))}
@@ -357,7 +357,7 @@ export function AtlasPage({
       </section>
 
       <PulsePanel>
-        <p className="atlas-label">{t(locale, 'atlasSources')}</p>
+        <PulseKicker>{t(locale, 'atlasSources')}</PulseKicker>
         <div className="mt-3 flex flex-wrap gap-2">
           {(atlas?.sources ?? []).slice(0, 12).map((source) => (
             <SourcePill key={source.key} locale={locale} source={source} />

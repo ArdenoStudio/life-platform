@@ -2,10 +2,10 @@ import { Bell, Bookmark, RefreshCcw, Save, ShieldCheck } from 'lucide-react'
 import { useEffect, type Dispatch, type SetStateAction } from 'react'
 
 import { CostOfLifeHero } from '../components/CostOfLifeHero'
-import { PulseKicker, PulsePanel, PulseSubtitle, PulseTitle } from '../components/PulsePanel'
+import { MetricTile } from '../components/MetricTile'
+import { PulseInnerCard, PulseKicker, PulsePanel, pulseInnerCardClass, PulseSubtitle, PulseTitle } from '../components/PulsePanel'
 import { SisterSignalCard } from '../components/SisterSignalCard'
 import { TrustStrip } from '../components/TrustStrip'
-import { BentoCard, BentoGrid, MetricDeck } from '../components/ui/AceternityPrimitives'
 import { profileLabel, statusLabel, t } from '../i18n'
 import { trackEvent } from '../lib/analytics'
 import { severityTone } from '../lib/format'
@@ -145,19 +145,19 @@ export function TodayPage({
       <TrustStrip domains={overview.domains} locale={locale} sourceRelease={sourceRelease} variant="glass" />
 
       {lifePulse ? (
-        <BentoGrid>
-          <BentoCard beam className="md:col-span-5 xl:col-span-5" tone="leaf">
+        <section className="grid gap-5 xl:grid-cols-2">
+          <PulsePanel>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="atlas-label">{t(locale, 'optionalAccount')}</p>
-                <h2 className="mt-1 text-2xl font-bold text-ink">{t(locale, 'myArivaPulse')}</h2>
-                <p className="mt-2 text-sm leading-6 text-muted">
+                <PulseKicker>{t(locale, 'optionalAccount')}</PulseKicker>
+                <h2 className="mt-1 font-display text-2xl font-extrabold text-paper">{t(locale, 'myArivaPulse')}</h2>
+                <p className="mt-2 text-sm leading-6 text-paper/75">
                   {lifePulse.profile.district} / {profileLabel(locale, lifePulse.profile.profile)} /{' '}
                   {lifePulse.profile.default_locale.toUpperCase()}
                 </p>
               </div>
               <button
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3 text-sm font-bold text-ink hover:bg-stone-50"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-bold text-paper hover:bg-white/15"
                 disabled={saveProfilePending}
                 onClick={onSaveProfile}
                 type="button"
@@ -166,42 +166,57 @@ export function TodayPage({
                 {saveProfilePending ? t(locale, 'saving') : t(locale, 'saveFilters')}
               </button>
             </div>
-            <MetricDeck
-              className="mt-5"
-              items={[
-                { icon: Bookmark, label: t(locale, 'watchlist'), tone: 'steel', trend: 'up', trendLabel: t(locale, 'savedWatches'), value: lifePulse.saved_items.length },
-                { icon: ShieldCheck, label: t(locale, 'alertRules'), tone: 'leaf', trend: 'up', trendLabel: t(locale, 'activeRules'), value: lifePulse.alert_rules.length },
-                { icon: Bell, label: t(locale, 'unreadNotifications'), tone: 'chili', trend: lifePulse.unread_count ? 'up' : 'flat', trendLabel: t(locale, 'needsAttention'), value: lifePulse.unread_count },
-              ]}
-            />
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <MetricTile
+                icon={Bookmark}
+                label={t(locale, 'watchlist')}
+                note={t(locale, 'savedWatches')}
+                tone="blue"
+                value={String(lifePulse.saved_items.length)}
+              />
+              <MetricTile
+                icon={ShieldCheck}
+                label={t(locale, 'alertRules')}
+                note={t(locale, 'activeRules')}
+                tone="green"
+                value={String(lifePulse.alert_rules.length)}
+              />
+              <MetricTile
+                icon={Bell}
+                label={t(locale, 'unreadNotifications')}
+                note={t(locale, 'needsAttention')}
+                tone="red"
+                value={String(lifePulse.unread_count)}
+              />
+            </div>
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
-              <div className="rounded-lg border border-line bg-white/65 p-3">
-                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-muted">{t(locale, 'watchlist')}</p>
+              <PulseInnerCard>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-paper/65">{t(locale, 'watchlist')}</p>
                 <div className="mt-2 space-y-1">
                   {lifePulse.saved_items.slice(0, 3).map((item) => (
-                    <p key={item.id} className="truncate text-sm font-bold text-ink">
+                    <p key={item.id} className="truncate text-sm font-bold text-paper">
                       {item.label}
                     </p>
                   ))}
-                  {!lifePulse.saved_items.length ? <p className="text-sm text-muted">{t(locale, 'noSavedWatches')}</p> : null}
+                  {!lifePulse.saved_items.length ? <p className="text-sm text-paper/70">{t(locale, 'noSavedWatches')}</p> : null}
                 </div>
-              </div>
-              <div className="rounded-lg border border-line bg-white/65 p-3">
-                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-muted">{t(locale, 'alertRules')}</p>
+              </PulseInnerCard>
+              <PulseInnerCard>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-paper/65">{t(locale, 'alertRules')}</p>
                 <div className="mt-2 space-y-1">
                   {lifePulse.alert_rules.slice(0, 3).map((rule) => (
-                    <p key={rule.id} className="truncate text-sm font-bold text-ink">
+                    <p key={rule.id} className="truncate text-sm font-bold text-paper">
                       {rule.label}
                     </p>
                   ))}
-                  {!lifePulse.alert_rules.length ? <p className="text-sm text-muted">{t(locale, 'noAlertRules')}</p> : null}
+                  {!lifePulse.alert_rules.length ? <p className="text-sm text-paper/70">{t(locale, 'noAlertRules')}</p> : null}
                 </div>
-              </div>
+              </PulseInnerCard>
             </div>
-          </BentoCard>
+          </PulsePanel>
 
-          <BentoCard beam className="md:col-span-7 xl:col-span-7" tone="steel">
-            <p className="atlas-label">{t(locale, 'consolidatedNotifications')}</p>
+          <PulsePanel tone="muted">
+            <PulseKicker>{t(locale, 'consolidatedNotifications')}</PulseKicker>
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
               {lifePulse.notifications.length ? (
                 lifePulse.notifications.slice(0, 4).map((notification) => (
@@ -217,11 +232,11 @@ export function TodayPage({
                   </button>
                 ))
               ) : (
-                <p className="rounded-lg border border-line bg-white/70 p-4 text-sm leading-6 text-muted">{t(locale, 'noAccountAlerts')}</p>
+                <p className={`col-span-full text-sm leading-6 text-paper/75 ${pulseInnerCardClass} p-4`}>{t(locale, 'noAccountAlerts')}</p>
               )}
             </div>
-          </BentoCard>
-        </BentoGrid>
+          </PulsePanel>
+        </section>
       ) : null}
     </div>
   )
