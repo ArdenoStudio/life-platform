@@ -30,3 +30,14 @@ export function resolvePage(page: string | null): PageKey {
   if (validPages.includes(page as PageParam)) return page as PageKey
   return 'home'
 }
+
+const pageUrlAliases: Partial<Record<PageKey, PageAlias>> = {
+  home: 'today',
+  atlas: 'places',
+  sources: 'trust',
+}
+
+/** Canonical page param for shareable URLs (spec: `page=today`, `places`, `trust`). */
+export function pageParamForUrl(page: PageKey): string {
+  return pageUrlAliases[page] ?? page
+}

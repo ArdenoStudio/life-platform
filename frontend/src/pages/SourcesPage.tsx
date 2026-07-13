@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle2, DatabaseZap, ExternalLink, GitBranch, ShieldCheck } from 'lucide-react'
+import { useEffect } from 'react'
 
 import { AtlasPanel } from '../components/AtlasPanel'
 import { SourcePill } from '../components/SourcePill'
 import { BackgroundBeams, BorderBeam, Spotlight } from '../components/ui/AceternityPrimitives'
 import { domainLabel, sourceTypeLabel, statusLabel, t } from '../i18n'
 import { getPipeline, getSourceRelease, getSourceValidation } from '../lib/api'
+import { trackEvent } from '../lib/analytics'
 import { domainMeta, formatDate, sourceTypeTone, statusTone } from '../lib/format'
 import type { DomainKey, DomainSignal, LocaleCode, SourceType, SourceValidationCheck } from '../types'
 
@@ -85,6 +87,10 @@ export function SourcesPage({ domains, locale }: { domains: DomainSignal[]; loca
   const uniqueSources = Array.from(new Map(sources.map((source) => [source.key, source])).values())
   const mvpSisters = domains.filter((domain) => mvpSisterKeys.includes(domain.key as (typeof mvpSisterKeys)[number]))
   const otherDomains = domains.filter((domain) => !mvpSisterKeys.includes(domain.key as (typeof mvpSisterKeys)[number]))
+
+  useEffect(() => {
+    trackEvent('pulse.trust_view', { release_key: releaseData?.active_release_key ?? 'reviewed seed data' })
+  }, [releaseData?.active_release_key])
 
   return (
     <div className="space-y-5">

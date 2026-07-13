@@ -139,6 +139,11 @@ def test_life_overview_returns_all_domains(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["headline"].startswith("Ariva reads Sri Lanka")
+    headline_lower = payload["headline"].lower()
+    assert "food" in headline_lower
+    assert "fuel" in headline_lower
+    assert "shelter" in headline_lower
+    assert "vehicle" not in headline_lower
     survival = payload["survival_index"]
     assert survival["district"] == "Sri Lanka"
     assert survival["profile"] == "family"
@@ -194,6 +199,8 @@ def test_life_overview_survival_index_is_district_specific(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["headline"].startswith("Ariva reads living signals for Colombo")
+    assert "shelter" in payload["headline"].lower()
+    assert "vehicle" not in payload["headline"].lower()
     survival = payload["survival_index"]
     assert survival["district"] == "Colombo"
     assert survival["profile"] == "commuter"
@@ -215,6 +222,37 @@ def test_life_overview_survival_index_uses_mvp_weights(client):
     assert survival["index_score"] is not None
     assert survival["monthly_lkr"] > 0
     assert survival["monthly_lkr"] < response.json()["affordability"]["total_monthly_lkr"]
+    breakdown_keys = {item["key"] for item in survival["breakdown"]}
+    assert breakdown_keys.issubset({"food", "fuel", "property"})
+    assert breakdown_keys == {"food", "fuel", "property"}
+    weights = survival["weights"]
+    assert set(weights) == {"food", "fuel", "property"}
+    assert abs(sum(weights.values()) - 1.0) < 0.001 or abs(sum(weights.values()) - 100.0) < 0.001
+
+
+def test_life_overview_headline_mentions_shelter_not_vehicles(client):
+    national = client.get("/api/v1/life/overview").json()
+    district = client.get("/api/v1/life/overview?district=Colombo&profile=family").json()
+    for payload in (national, district):
+        headline = payload["headline"].lower()
+        assert "food" in headline
+        assert "fuel" in headline
+        assert "shelter" in headline
+        assert "vehicle" not in headline
+
+
+def test_life_overview_survival_index_breakdown_and_weights(client):
+    response = client.get("/api/v1/life/overview?district=Galle&profile=single")
+    assert response.status_code == 200
+    survival = response.json()["survival_index"]
+    breakdown_keys = {item["key"] for item in survival["breakdown"]}
+    assert breakdown_keys.issubset({"food", "fuel", "property"})
+    weights = survival["weights"]
+    weight_total = sum(weights.values())
+    assert abs(weight_total - 1.0) < 0.001 or abs(weight_total - 100.0) < 0.001
+    assert weights.get("food", 0) in {0.45, 45.0}
+    assert weights.get("fuel", 0) in {0.20, 20.0}
+    assert weights.get("property", 0) in {0.35, 35.0}
 
 
 def test_life_domains_records_snapshots(client):

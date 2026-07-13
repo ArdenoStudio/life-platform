@@ -275,6 +275,8 @@ class SurvivalIndexResponse(BaseModel):
     disclaimer: str
     index_score: float | None = None
     trend: Literal["up", "down", "flat"] | None = None
+    breakdown: list[AffordabilityBreakdownItem] | None = None
+    weights: dict[str, float] | None = None
 
 
 class LifeOverviewResponse(BaseModel):

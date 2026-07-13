@@ -52,18 +52,18 @@ npm run build
 npm run dev
 ```
 
-Smoke checks:
+Smoke checks (District Life Pulse MVP IA):
 
 - Production build keeps the initial app chunk small and splits chart/auth code into separate lazy chunks; no Vite chunk-size warning should appear.
-- Dashboard renders Ariva and Sri Lanka Living Intelligence.
-- Eleven domains appear, including Food, Fuel, Property, Vehicle, District Life Scores, and Weather and Risk.
+- **Today** (`/?page=today` or default home): renders Ariva District Life Pulse hero with **Cost of Life** score, three sister cards (**Food**, **Fuel**, **Shelter**), trust strip (release badge + degradation banner when any sister is degraded/offline), and sticky district in shell chrome.
+- Sister cards expose source-class pills, freshness notes, and platform deep links with `utm_source=ariva_life_pulse`.
+- **Trust** (`/?page=trust`): sister adapter list (food / fuel / property), source validation, active source-release card, and source-class glossary.
+- **Decide** (`/?page=decide`): two-district compare loads without horizontal overflow; district and profile selectors work.
 - Search finds a fuel or food signal.
-- Sources page shows upstream health and limitations.
-- Sources page shows source validation status plus the active promoted source-release state or reviewed seed fallback.
 - `/?page=operator` renders the protected source-release review shell without exposing internal release data until a runtime token is entered.
 - With `VITE_FIREBASE_*` configured, sign-in appears; without it, public pages render and account controls stay hidden.
 - With `VITE_LIFE_TEST_AUTH_TOKEN`, My Ariva Pulse renders saved profile, watches, alert rules, and notifications in tests.
-- Compare and affordability views do not overflow on mobile widths.
+- Cost Desk and Decide views do not overflow on mobile widths.
 
 Playwright smoke after backend and frontend are running:
 
@@ -72,9 +72,80 @@ $env:LIFE_E2E_BASE_URL="http://127.0.0.1:3001"
 npm run test:e2e
 ```
 
+Targeted Life Pulse routes (same `LIFE_E2E_BASE_URL`):
+
+```powershell
+# Today IA — sisters + Cost of Life hero
+npx playwright test tests/e2e/life-dashboard.spec.ts -g "Ariva home"
+
+# Trust tab — registry, validation, release card
+npx playwright test tests/e2e/life-dashboard.spec.ts -g "sources and trilingual"
+
+# Decide — manual URL smoke until dedicated Playwright spec lands (see implementation plan Phase 3)
+# Open http://127.0.0.1:3001/?page=decide&district=Colombo&profile=family
+
+# Manual deep-link spot check (sister platform URLs from overview)
+curl -s "http://127.0.0.1:8090/api/v1/life/overview?district=Colombo&profile=family" | python -m json.tool | rg homepage_url
+
+# Deep-link rot script (when present under repo root)
+node scripts/check-deep-links.mjs
+```
+
+Manual URL smoke:
+
+```text
+http://127.0.0.1:3001/?page=today&district=Kandy&profile=family&locale=en
+http://127.0.0.1:3001/?page=trust&district=Colombo&locale=en
+http://127.0.0.1:3001/?page=decide&district=Colombo&compare=Kandy&profile=family
+```
+
+## Kill-criteria telemetry (60-day review — 2026-09-11)
+
+Revival **fails** if any kill criterion is true at evaluation. **Continuation** requires ≥4 of 5 category groups passing (Adoption, Reliability, Trust, Product). Full thresholds: [`docs/superpowers/specs/2026-07-13-ariva-revival-design.md`](superpowers/specs/2026-07-13-ariva-revival-design.md#60-day-kill-criteria).
+
+| Category | Criterion | Threshold | How to measure |
+|----------|-----------|-----------|----------------|
+| Adoption | Weekly active district users | ≥ 500 WAU | Analytics: unique clients with `GET /life/overview` + `district != Sri Lanka` (event `pulse.today_view` + district param) |
+| Adoption | D7 return rate | ≥ 15% | Cohort: users with `pulse.today_view` on day 0 returning within 7 days |
+| Adoption | Sticky district rate | ≥ 40% | Sessions where `pulse.district_change` district matches first session district in week |
+| Reliability | Sister live rate | ≥ 85% each | `integration_runs`: `success / total` per `domain_key` in `food`, `fuel`, `property` over trailing 14 days |
+| Reliability | Overview p95 latency | ≤ 2.5s | API telemetry / load-test p95 for `GET /api/v1/life/overview` |
+| Reliability | Silent fallback incidents | 0 | Incidents where degraded sister data rendered without Today degradation banner (`signalsDegradedBanner`) |
+| Trust | Trust chrome completeness | 100% on sisters | UI audit: each sister card has source class, confidence, freshness; contract tests in `frontend/tests/e2e/life-dashboard.spec.ts` + `backend/tests/test_life_api.py` |
+| Trust | Deep link rot | ≤ 10% broken | Weekly `node scripts/check-deep-links.mjs` against sister `homepage_url` samples from overview |
+| Trust | Source-release transparency | Present on Today | Manual QA: Trust strip shows promoted or seed-fallback release key on Today |
+| Product | Cost score comprehension | ≥ 50% “understand score” | In-app micro-survey (n ≥ 100) after Cost tab visit (`pulse.cost_detail_view`) |
+| Product | Deep link CTR | ≥ 5% | `pulse.deep_link_click` / `pulse.today_view` ratio by sister |
+
+**Pre-review SQL (Postgres, adjust window):**
+
+```sql
+-- Sister adapter uptime (14-day window)
+SELECT domain_key,
+       COUNT(*) FILTER (WHERE status = 'success')::float / NULLIF(COUNT(*), 0) AS success_rate
+FROM integration_runs
+WHERE domain_key IN ('food', 'fuel', 'property')
+  AND started_at >= NOW() - INTERVAL '14 days'
+GROUP BY domain_key;
+
+-- Latest Cost of Life snapshots (derived index persistence)
+SELECT district, profile, total_lkr, confidence, observed_at
+FROM life_index_snapshots
+ORDER BY observed_at DESC
+LIMIT 20;
+```
+
+**Pre-review checklist (week of 2026-09-04):**
+
+1. Run full E2E suite (`npm run test:e2e`) against preview + production URLs.
+2. Run `node scripts/check-deep-links.mjs` and attach failure list if any.
+3. Export analytics counts for `pulse.*` events (30-day window).
+4. Confirm Today shows three sisters + Cost of Life + trust strip on production.
+5. File kill / re-park / continue decision with evidence in `docs/superpowers/specs/`.
+
 ## Production
 
-- `GET /api/v1/life/overview` returns all four domains.
+- `GET /api/v1/life/overview` returns `survival_index` labelled **Cost of Life** (MVP weights: food 45%, fuel 20%, shelter 35%) plus domain signals; Today consumes the three sister keys (`food`, `fuel`, `property`) only.
 - `GET /api/v1/life/pipeline` returns a domain status list, even if one upstream is degraded.
 - `GET /api/v1/life/source-validation` returns the current registry and score-source validation state.
 - `GET /api/v1/life/source-release` returns active public release identity, observed time, source keys, snapshot counts, and seed-fallback state without internal artifact ids, checks, or operator notes.

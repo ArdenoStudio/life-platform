@@ -88,6 +88,8 @@ export interface SurvivalIndexResponse {
   disclaimer: string
   index_score?: number | null
   trend?: Trend | null
+  breakdown?: AffordabilityBreakdownItem[] | null
+  weights?: Record<string, number> | null
 }
 
 export interface LifeOverviewResponse {

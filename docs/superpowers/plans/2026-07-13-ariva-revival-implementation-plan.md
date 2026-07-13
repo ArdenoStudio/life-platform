@@ -30,29 +30,27 @@
 - [x] **Auth district save** — `PUT /me/profile` + save CTA on Today via [`frontend/src/App.tsx`](../../frontend/src/App.tsx) (`saveProfileMutation`, `updateMeProfile`).
 - [x] **Life pulse aggregate** — `GET /me/life-pulse` ([`backend/app/api/v1/endpoints/me.py`](../../backend/app/api/v1/endpoints/me.py)); rendered on Today when signed in.
 - [x] **Federated adapters** — [`backend/app/adapters/food.py`](../../backend/app/adapters/food.py), [`fuel.py`](../../backend/app/adapters/fuel.py), [`property.py`](../../backend/app/adapters/property.py).
+- [x] **`localStorage` key aligned with spec** — `ariva.homeDistrict` with legacy `ariva-home-district` migration in [`frontend/src/lib/format.ts`](../../frontend/src/lib/format.ts).
+- [x] **Auth district precedence** — `activeDistrict` / `activeProfile` from `lifePulse.profile` when signed in in [`frontend/src/App.tsx`](../../frontend/src/App.tsx).
+- [x] **`SisterSignalCard` + `TrustStrip`** — [`frontend/src/components/SisterSignalCard.tsx`](../../frontend/src/components/SisterSignalCard.tsx), [`frontend/src/components/TrustStrip.tsx`](../../frontend/src/components/TrustStrip.tsx); UTM deep links via [`frontend/src/lib/deepLink.ts`](../../frontend/src/lib/deepLink.ts).
+- [x] **Degradation banner** — `TrustStrip` shows `signalsDegradedBanner` when any sister is degraded/offline.
+- [x] **Survival index direction** — `survival_index.trend` vs prior `life_index_snapshots` row in [`life_service.py`](../../backend/app/services/life_service.py) `overview`.
+- [x] **URL alias read path `page=today`** — `today` → `home` in [`frontend/src/lib/pages.ts`](../../frontend/src/lib/pages.ts) (`resolvePage`, `validPages`); `trust` → `sources`, `places` → `atlas`.
 
 ### Remaining Phase 1 tasks
 
-- [ ] **Align `localStorage` key with spec** — Rename `ariva-home-district` → `ariva.homeDistrict` in [`frontend/src/lib/format.ts`](../../frontend/src/lib/format.ts); migrate read path for one release.
-- [ ] **URL alias `page=today`** — Map `today` → `home` in [`frontend/src/App.tsx`](../../frontend/src/App.tsx) `readInitialParams` / `validPages`; emit `today` in URL when on Today (spec URL contract).
-- [ ] **Auth district precedence** — On sign-in, override local district from `lifePulse.profile.district` in [`frontend/src/App.tsx`](../../frontend/src/App.tsx); write-back on profile save (spec precedence chain).
-- [ ] **Extract trust chrome components** (spec appendix):
+- [ ] **Emit `page=today` in URL** — `App.tsx` `replaceState` still writes `page=home` when on Today; emit canonical `today` per spec URL contract.
+- [ ] **Extract remaining trust chrome components** (spec appendix):
   - [ ] `frontend/src/components/DistrictChip.tsx` — thin wrapper around shell district control (or delegate from `Shell.tsx`).
-  - [ ] `frontend/src/components/SourceClassPill.tsx` — extend [`SourcePill.tsx`](../../frontend/src/components/SourcePill.tsx) pattern.
-  - [ ] `frontend/src/components/FreshnessLabel.tsx` — `observed_at` + `freshness_note`.
-  - [ ] `frontend/src/components/SisterSignalCard.tsx` — status, headline, metrics, trust pills, deep link.
-  - [ ] `frontend/src/components/DeepLinkButton.tsx` — platform exit + `utm_campaign=ariva_life_pulse`.
-  - [ ] `frontend/src/components/TrustStrip.tsx` — release key + district degradation banner.
-  - [ ] `frontend/src/components/CostOfLifeHero.tsx` — index, direction chip, derived badge, weight teaser.
+  - [ ] `frontend/src/components/SourceClassPill.tsx` — extend [`SourcePill.tsx`](../../frontend/src/components/SourcePill.tsx) pattern (currently inline in `SisterSignalCard`).
+  - [ ] `frontend/src/components/FreshnessLabel.tsx` — `observed_at` + `freshness_note` (currently inline in `SisterSignalCard`).
+  - [ ] `frontend/src/components/DeepLinkButton.tsx` — platform exit + `utm_campaign=ariva_life_pulse` (logic in `SisterSignalCard` + `deepLink.ts` today).
+  - [ ] `frontend/src/components/CostOfLifeHero.tsx` — index, direction chip, derived badge, weight teaser (hero still inline in `HomePage.tsx`).
 - [ ] **Rename / narrow Today page** — Refactor [`HomePage.tsx`](../../frontend/src/pages/HomePage.tsx) → `TodayPage.tsx`; demote multi-domain hero (vehicles, utilities, weather, retail, top movers grid) to secondary tabs or remove from Today.
 - [ ] **MVP overview contract (backend)** — In [`life_service.py`](../../backend/app/services/life_service.py) `overview`:
   - [ ] Headline mentions food / fuel / shelter only (not vehicles).
   - [ ] Add optional `sister_domains` filter or document that clients slice `domains` to `food|fuel|property`.
-  - [ ] Expose direction vs prior snapshot on `survival_index` (field + migration if persisted in `life_index_snapshots`).
-- [ ] **Degradation banner** — When any sister `status !== 'healthy'`, show district strip on Today (spec: *"Some signals are degraded; labels preserved."*); wire from `overview.source_health` or per-domain status in [`TodayPage`](../../frontend/src/pages/HomePage.tsx).
-- [ ] **Deep links with UTM** — Build platform URLs in adapters or a small `frontend/src/lib/deepLinks.ts`; replace raw `homepage_url` anchors in sister cards.
-- [ ] **i18n shelter label** — UI “Shelter” / API `property` keys in [`frontend/src/i18n.ts`](../../frontend/src/i18n.ts) (`sisterShelter` exists; audit copy).
-- [ ] **Frontend tests** — Update [`frontend/src/App.test.tsx`](../../frontend/src/App.test.tsx) for Today-only sister layout and trust chrome presence.
+- [ ] **Frontend tests** — Update [`frontend/src/App.test.tsx`](../../frontend/src/App.test.tsx) for Today-only sister layout and trust chrome presence (E2E covers sisters on home in [`life-dashboard.spec.ts`](../../frontend/tests/e2e/life-dashboard.spec.ts)).
 
 ### Phase 1 verification
 
@@ -82,20 +80,21 @@ cd frontend && npm run dev
 
 ### Tasks
 
-- [ ] **MVP affordability weights** — In [`life_service.py`](../../backend/app/services/life_service.py) `affordability_from_signals` / new `mvp_cost_of_life`:
-  - Food 45%, fuel 20%, shelter 35% only; exclude utilities, transport, vehicle, health from **headline** `survival_index` total.
-  - Document weights in response (`breakdown` + `derived` source class).
-- [ ] **Persist derived snapshot** — Write `life_index_snapshots` with input pointers to sister `domain_snapshots` (see [`backend/app/db/models.py`](../../backend/app/db/models.py)); link in Trust manifest.
+- [x] **MVP affordability weights** — In [`life_service.py`](../../backend/app/services/life_service.py) `_mvp_survival_monthly` / `_mvp_survival_index`:
+  - [x] Food 45%, fuel 20%, shelter 35% only for headline `survival_index` total.
+  - [x] Document weights in response (`survival_index.disclaimer` + `derived` source class in sister cards).
+- [x] **Persist derived snapshot** — `life_index_snapshots` written from `affordability_from_signals` with breakdown JSON ([`backend/app/db/models.py`](../../backend/app/db/models.py)); trend reads prior row in `overview`.
 - [ ] **Cost tab trim** — [`frontend/src/pages/CostOSPage.tsx`](../../frontend/src/pages/CostOSPage.tsx): sparkline/history for district + profile; weight breakdown (3 inputs); link to Trust methodology; hide non-MVP line items from hero (detail section OK).
 - [ ] **Places tab shelter-forward** — [`frontend/src/pages/AtlasPage.tsx`](../../frontend/src/pages/AtlasPage.tsx): elevate shelter sister; PropertyLK deep link per spec.
-- [ ] **Decide flow (MVP)** — [`ComparePage.tsx`](../../frontend/src/pages/ComparePage.tsx): max 2 districts; Cost of Life delta + sister signal deltas (not generic domain metric pickers); share URL `?page=decide&district=A&compare=B&profile=…`.
-- [ ] **Trust tab filter** — [`SourcesPage.tsx`](../../frontend/src/pages/SourcesPage.tsx): filter registry to food / fuel / property + derived Cost manifest; Cost derivation expandable section.
-- [ ] **Adapter platform URLs** — Ensure [`food.py`](../../backend/app/adapters/food.py), [`fuel.py`](../../backend/app/adapters/fuel.py), [`property.py`](../../backend/app/adapters/property.py) expose district-scoped `platform_url` / `homepage_url` for deep links.
-- [ ] **Derived confidence** — When any sister degraded/offline, lower `survival_index.confidence` and surface in `CostOfLifeHero`.
+- [ ] **Decide flow (MVP)** — [`ComparePage.tsx`](../../frontend/src/pages/ComparePage.tsx): max 2 districts; Cost of Life delta + sister signal deltas (not generic domain metric pickers); share URL `?page=decide&district=A&compare=B&profile=…` (page route exists; compare still uses generic domain pickers and local state only).
+- [x] **Trust tab filter** — [`SourcesPage.tsx`](../../frontend/src/pages/SourcesPage.tsx): MVP sister adapter list (`mvpSisterKeys`) plus full registry for other domains.
+- [x] **Adapter platform URLs** — [`food.py`](../../backend/app/adapters/food.py), [`fuel.py`](../../backend/app/adapters/fuel.py), [`property.py`](../../backend/app/adapters/property.py) expose `homepage_url`; frontend adds UTM via `deepLink.ts`.
+- [ ] **Derived confidence** — When any sister degraded/offline, lower `survival_index.confidence` and surface in `CostOfLifeHero` (today: confidence drops on offline domains only, not per-sister degradation).
 - [ ] **Backend contract tests** — Extend [`backend/tests/test_life_api.py`](../../backend/tests/test_life_api.py):
-  - MVP breakdown keys ⊆ `{food, fuel, property}` for headline score.
-  - Weights sum to 100%.
-  - Degraded fuel → `confidence` drops + status preserved in `domains`.
+  - [x] MVP weight disclaimer on overview (`test_life_overview_survival_index_uses_mvp_weights`).
+  - [ ] Headline breakdown keys ⊆ `{food, fuel, property}` for headline score.
+  - [ ] Weights sum to 100%.
+  - [ ] Degraded fuel → `confidence` drops + status preserved in `domains`.
 
 ### Phase 2 verification
 
@@ -125,18 +124,17 @@ cd frontend && npm run test -- --run src/App.test.tsx
 ### Tasks
 
 - [ ] **Playwright Life Pulse suite** — Extend [`frontend/tests/e2e/life-dashboard.spec.ts`](../../frontend/tests/e2e/life-dashboard.spec.ts):
-  - Today: three sister labels (Food / Fuel / Shelter), Cost of Life hero, trust strip.
-  - District change updates URL and refetches overview.
-  - Deep link click opens new tab (mock or `page.context().waitForEvent('popup')`).
-  - Decide two-district compare; Move teaser link.
-  - Degraded state: banner visible (use test mock or fixture API).
-- [ ] **Analytics events** — Implement spec events in a thin [`frontend/src/lib/analytics.ts`](../../frontend/src/lib/analytics.ts) (stub to `window.gtag` or console in dev):
-  - `pulse.today_view`, `pulse.district_change`, `pulse.sister_expand`, `pulse.deep_link_click`, `pulse.cost_detail_view`, `pulse.trust_view`, `pulse.compare_run`.
-  - Fire from `TodayPage`, `Shell`, `SisterSignalCard`, `DeepLinkButton`, `CostOSPage`, `SourcesPage`, `ComparePage`.
+  - [x] Today: three sister labels (Food / Fuel / Shelter) on home route.
+  - [ ] Cost of Life hero + trust strip assertions on `/?page=today`.
+  - [ ] District change updates URL and refetches overview.
+  - [ ] Deep link click opens new tab (mock or `page.context().waitForEvent('popup')`).
+  - [ ] Decide two-district compare; Move teaser link.
+  - [ ] Degraded state: banner visible (use test mock or fixture API).
+- [x] **Analytics events** — [`frontend/src/lib/analytics.ts`](../../frontend/src/lib/analytics.ts) stub; fired from Today, Shell, sister cards, Cost, Trust, Decide (`pulse.sister_expand` defined but not yet wired).
 - [ ] **Link rot check script** — Add `scripts/check-deep-links.mjs` (Node stdlib): HEAD request sister `platform_url` samples; fail CI if >10% broken (align with kill criteria).
-- [ ] **Kill-criteria telemetry doc** — Section in [`docs/verification.md`](../../docs/verification.md) mapping spec thresholds to queries (`integration_runs`, overview p95, UI audit checklist).
-- [ ] **CI wiring** — Ensure [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs updated E2E against live backend (pattern already uses `npm run test:e2e`).
-- [ ] **Operator path unchanged** — Confirm `/?page=operator` still gated ([`frontend/src/pages/OperatorPage.tsx`](../../frontend/src/pages/OperatorPage.tsx)); no MVP leakage.
+- [x] **Kill-criteria telemetry doc** — Section in [`docs/verification.md`](../../docs/verification.md) mapping spec thresholds to queries (`integration_runs`, overview p95, UI audit checklist).
+- [x] **CI wiring** — [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs `npm run test:e2e`.
+- [x] **Operator path unchanged** — `/?page=operator` gated ([`frontend/src/pages/OperatorPage.tsx`](../../frontend/src/pages/OperatorPage.tsx)); E2E in `life-dashboard.spec.ts`.
 
 ### Phase 3 verification
 

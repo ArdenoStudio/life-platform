@@ -25,7 +25,7 @@ import {
 } from './lib/api'
 import { trackEvent } from './lib/analytics'
 import { districts, readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
-import { resolvePage, validPages, type PageParam } from './lib/pages'
+import { pageParamForUrl, resolvePage, validPages, type PageParam } from './lib/pages'
 import type { LocaleCode, PageKey, Profile } from './types'
 
 const loadHomePage = () => import('./pages/HomePage')
@@ -109,7 +109,15 @@ function AppContent() {
   const previousDistrictRef = useRef(initial.district)
 
   useEffect(() => {
-    const params = new URLSearchParams({ page: activePage, locale, district, profile, compare: compareDistrict })
+    const params = new URLSearchParams({
+      page: pageParamForUrl(activePage),
+      locale,
+      district,
+      profile,
+    })
+    if (activePage === 'decide') {
+      params.set('compare', compareDistrict)
+    }
     window.history.replaceState({}, '', `${window.location.pathname}?${params}`)
   }, [activePage, compareDistrict, district, locale, profile])
 

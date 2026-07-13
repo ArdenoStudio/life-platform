@@ -1,14 +1,20 @@
-import { Bus, Flame, PlugZap, WalletCards } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { Bus, DatabaseZap, Flame, PlugZap, WalletCards } from 'lucide-react'
+import { useEffect, type Dispatch, type SetStateAction } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { AtlasPanel } from '../components/AtlasPanel'
 import { MetricTile } from '../components/MetricTile'
 import { SourcePill } from '../components/SourcePill'
-import { BackgroundBeams, BorderBeam, Spotlight } from '../components/ui/AceternityPrimitives'
-import { profileLabel, sourceTypeLabel, t } from '../i18n'
-import { districts, formatLkrLocale, profiles, sourceTypeTone } from '../lib/format'
-import type { CostCommandResponse, LocaleCode, Profile, TransportResponse, UtilitiesResponse } from '../types'
+import { profileLabel, sourceTypeLabel, t, type I18nKey } from '../i18n'
+import { trackEvent } from '../lib/analytics'
+import { districts, domainMeta, formatLkrLocale, profiles, sourceTypeTone } from '../lib/format'
+import type { CostCommandResponse, DomainKey, LocaleCode, PageKey, Profile, TransportResponse, UtilitiesResponse } from '../types'
+
+const mvpWeights: Array<{ key: DomainKey; percent: number; kicker: Extract<I18nKey, 'sisterFood' | 'sisterFuel' | 'sisterShelter'> }> = [
+  { key: 'food', percent: 45, kicker: 'sisterFood' },
+  { key: 'fuel', percent: 20, kicker: 'sisterFuel' },
+  { key: 'property', percent: 35, kicker: 'sisterShelter' },
+]
 
 function localeTag(locale: LocaleCode) {
   return locale === 'si' ? 'si-LK' : locale === 'ta' ? 'ta-LK' : 'en-LK'
@@ -19,6 +25,7 @@ export function CostOSPage({
   district,
   locale,
   profile,
+  setActivePage,
   setDistrict,
   setProfile,
   transport,
@@ -28,11 +35,16 @@ export function CostOSPage({
   district: string
   locale: LocaleCode
   profile: Profile
+  setActivePage?: Dispatch<SetStateAction<PageKey>>
   setDistrict: Dispatch<SetStateAction<string>>
   setProfile: Dispatch<SetStateAction<Profile>>
   transport: TransportResponse | undefined
   utilities: UtilitiesResponse | undefined
 }) {
+  useEffect(() => {
+    trackEvent('pulse.cost_detail_view', { district, profile })
+  }, [district, profile])
+
   const chartData = costCommand?.items.map((item, index) => ({
     name: item.label,
     value: item.monthly_lkr,
@@ -41,17 +53,54 @@ export function CostOSPage({
 
   return (
     <div className="space-y-5">
+      <AtlasPanel>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="atlas-label">{t(locale, 'costOfLife')}</p>
+            <h2 className="mt-1 text-2xl font-semibold text-ink">{t(locale, 'costOfLife')}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{t(locale, 'costOfLifeWeights')}</p>
+          </div>
+          {setActivePage ? (
+            <button
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-stone-50 px-4 text-sm font-semibold text-ink hover:bg-white"
+              onClick={() => setActivePage('sources')}
+              type="button"
+            >
+              {t(locale, 'trust')}
+              <DatabaseZap className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : (
+            <p className="text-sm font-semibold text-muted">{t(locale, 'seeTrustForMethodology')}</p>
+          )}
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {mvpWeights.map(({ key, percent, kicker }) => {
+            const meta = domainMeta[key]
+            const Icon = meta.icon
+            return (
+              <div key={key} className="rounded-lg border border-line bg-white/80 p-4">
+                <div className="flex items-start gap-3">
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${meta.bg}`} style={{ color: meta.accent }}>
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-muted">{t(locale, kicker)}</p>
+                    <p className="mt-1 text-3xl font-semibold text-ink">{percent}%</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </AtlasPanel>
+
       <section className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr]">
         <AtlasPanel className="bg-ink text-paper">
-          <BackgroundBeams />
-          <Spotlight />
-          <BorderBeam colorFrom="#d5aa41" colorTo="#912a20" duration={9} />
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">{t(locale, 'costCommand')}</p>
           <h1 className="mt-3 text-4xl font-semibold leading-tight tracking-normal">{formatLkrLocale(costCommand?.total_monthly_lkr, localeTag(locale))}</h1>
           <p className="mt-3 text-sm leading-6 text-paper/72">
             {district} / {profileLabel(locale, profile)}. {t(locale, 'publicBudgetEstimate')}
           </p>
-          <div className="mt-5 signal-ribbon opacity-90" aria-hidden="true" />
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <label className="atlas-control light">
               {t(locale, 'district')}

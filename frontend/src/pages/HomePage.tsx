@@ -1,5 +1,5 @@
 import { ArrowRight, Bell, Bookmark, DatabaseZap, RefreshCcw, Save, ShieldCheck, WalletCards } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { useEffect, type Dispatch, type SetStateAction } from 'react'
 
 import { BrandMark } from '../components/BrandMark'
 import { MetricTile } from '../components/MetricTile'
@@ -7,6 +7,7 @@ import { SisterSignalCard } from '../components/SisterSignalCard'
 import { TrustStrip } from '../components/TrustStrip'
 import { BackgroundBeams, BentoCard, BentoGrid, BorderBeam, DataRail, MetricDeck, ShimmerButton, ShimmerText, SignalMap, Spotlight } from '../components/ui/AceternityPrimitives'
 import { profileLabel, statusLabel, t } from '../i18n'
+import { trackEvent } from '../lib/analytics'
 import { districts, formatLkrLocale, profiles, severityTone } from '../lib/format'
 import type { LifeOverviewResponse, LifePulseResponse, LocaleCode, PageKey, Profile, PublicSourceReleaseResponse } from '../types'
 
@@ -59,6 +60,11 @@ export function HomePage({
   setProfile: Dispatch<SetStateAction<Profile>>
   sourceRelease: PublicSourceReleaseResponse | undefined
 }) {
+  useEffect(() => {
+    if (!overview) return
+    trackEvent('pulse.today_view', { district, profile, locale })
+  }, [overview, district, profile, locale])
+
   if (isLoading && !overview) {
     return (
       <div className="grid min-h-[70vh] place-items-center rounded-lg border border-line bg-white/80">

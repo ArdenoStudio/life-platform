@@ -1,13 +1,17 @@
-import { Map as MapIcon, Navigation, Radar, Scale } from 'lucide-react'
+import { ExternalLink, Map as MapIcon, Navigation, Radar, Scale } from 'lucide-react'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { PolarAngleAxis, PolarGrid, Radar as RadarShape, RadarChart, ResponsiveContainer } from 'recharts'
 
 import { AtlasPanel } from '../components/AtlasPanel'
+import { SisterSignalCard } from '../components/SisterSignalCard'
 import { SourcePill } from '../components/SourcePill'
 import { BackgroundBeams, BorderBeam, SignalMap, Spotlight } from '../components/ui/AceternityPrimitives'
-import { profileLabel, t } from '../i18n'
-import { districts, formatNumber, formatPercent, profiles } from '../lib/format'
-import type { AreaScoreResponse, AtlasResponse, DistrictProfile, LocaleCode, Profile } from '../types'
+import { domainLabel, profileLabel, t } from '../i18n'
+import { addArivaUtm } from '../lib/deepLink'
+import { districts, domainMeta, formatNumber, formatPercent, profiles } from '../lib/format'
+import type { AreaScoreResponse, AtlasResponse, DistrictProfile, DomainSignal, LocaleCode, Profile } from '../types'
+
+const PROPERTYLK_FALLBACK_URL = 'https://propertylk-one.vercel.app'
 
 function scoreForDistrict(scores: AreaScoreResponse[] | undefined, district: string) {
   return scores?.find((item) => item.district === district)
@@ -46,6 +50,7 @@ export function AtlasPage({
   district,
   locale,
   profile,
+  propertyDomain,
   setDistrict,
   setProfile,
 }: {
@@ -53,6 +58,7 @@ export function AtlasPage({
   district: string
   locale: LocaleCode
   profile: Profile
+  propertyDomain?: DomainSignal
   setDistrict: Dispatch<SetStateAction<string>>
   setProfile: Dispatch<SetStateAction<Profile>>
 }) {
@@ -115,8 +121,38 @@ export function AtlasPage({
     },
   ]
 
+  const PropertyIcon = domainMeta.property.icon
+
   return (
     <div className="space-y-5">
+      {propertyDomain ? (
+        <SisterSignalCard domain={propertyDomain} kickerKey="sisterShelter" locale={locale} />
+      ) : (
+        <AtlasPanel>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${domainMeta.property.bg}`} style={{ color: domainMeta.property.accent }}>
+                <PropertyIcon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-muted">{t(locale, 'sisterShelter')}</p>
+                <h2 className="mt-1 text-2xl font-semibold text-ink">{domainLabel(locale, 'property', 'PropertyLK')}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{t(locale, 'districtScoreFallback')}</p>
+              </div>
+            </div>
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-stone-50 px-4 py-2 text-sm font-bold text-leaf hover:bg-white"
+              href={addArivaUtm(PROPERTYLK_FALLBACK_URL)}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {t(locale, 'viewOnPlatform').replace('{platform}', 'PropertyLK')}
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        </AtlasPanel>
+      )}
+
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <AtlasPanel className="relative overflow-hidden bg-ink text-paper">
           <BackgroundBeams />

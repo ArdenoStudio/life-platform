@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react'
 
 import { domainLabel, sourceTypeLabel, t, type I18nKey } from '../i18n'
+import { trackEvent } from '../lib/analytics'
 import { addArivaUtm } from '../lib/deepLink'
 import { domainMeta, formatMetric, sourceTypeTone } from '../lib/format'
 import type { Confidence, DomainSignal, LocaleCode, SourceType } from '../types'
@@ -61,6 +62,7 @@ export function SisterSignalCard({
       <a
         className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-leaf hover:text-leaf/80"
         href={platformUrl}
+        onClick={() => trackEvent('pulse.deep_link_click', { platform: domain.label, sister: domain.key })}
         rel="noopener noreferrer"
         target="_blank"
       >

@@ -462,21 +462,34 @@ class LifeService:
             .limit(1)
         )
         affordability = self.affordability_from_signals(db, domains, district=district, profile=profile)
-        confidence = "medium" if all(domain.status != "offline" for domain in domains) else "low"
+        survival_confidence = self._mvp_derived_confidence(domains, passed_confidence="high")
         survival_index = self._mvp_survival_index(
             domains,
             district,
             profile,
-            confidence=confidence,
+            confidence=survival_confidence,
             prior_snapshot=prior_snapshot,
         )
+        observed_at = utc_now()
+        db.add(
+            LifeIndexSnapshot(
+                profile=profile,
+                district=district,
+                total_lkr=survival_index.monthly_lkr,
+                confidence=survival_index.confidence,
+                breakdown={item.key: item.model_dump() for item in survival_index.breakdown or []},
+                assumptions=[survival_index.disclaimer],
+                observed_at=observed_at,
+            )
+        )
+        db.commit()
         health = self.source_health(domains)
         movers = self.top_movers(domains)
         freshness_note = "Live-powered summaries with short caching; each domain exposes its own source freshness."
         if district != "Sri Lanka":
-            headline = f"Ariva reads living signals for {district} across food, fuel, property, vehicles, and daily costs."
+            headline = f"Ariva reads living signals for {district} across food, fuel, and shelter."
         else:
-            headline = "Ariva reads Sri Lanka living signals across food, fuel, property, vehicles, and daily costs."
+            headline = "Ariva reads Sri Lanka living signals across food, fuel, and shelter."
         return LifeOverviewResponse(
             generated_at=utc_now(),
             headline=headline,
@@ -609,7 +622,38 @@ class LifeService:
         db.commit()
         return response
 
-    def _mvp_survival_monthly(self, domains: list[DomainSignal], *, district: str, profile: str) -> float:
+    MVP_SURVIVAL_WEIGHTS: dict[str, float] = {"food": 0.45, "fuel": 0.20, "property": 0.35}
+
+    def _mvp_sister_domain_confidence(self, domain: DomainSignal | None) -> Literal["high", "medium", "low"]:
+        if domain is None or domain.status == "offline":
+            return "low"
+        if domain.status == "degraded":
+            return "medium"
+        return "high"
+
+    def _mvp_derived_confidence(
+        self,
+        domains: list[DomainSignal],
+        *,
+        passed_confidence: Literal["high", "medium", "low"],
+    ) -> Literal["high", "medium", "low"]:
+        sister_keys = ("food", "fuel", "property")
+        sisters = [domain for domain in domains if domain.key in sister_keys]
+        if any(domain.status == "offline" for domain in sisters):
+            return "low"
+        if any(domain.status == "degraded" for domain in sisters):
+            if passed_confidence == "high":
+                return "medium"
+            return passed_confidence
+        return passed_confidence
+
+    def _mvp_survival_components(
+        self,
+        domains: list[DomainSignal],
+        *,
+        district: str,
+        profile: str,
+    ) -> tuple[float, float, float]:
         if profile not in PROFILE_FACTORS:
             profile = "family"
         factors = PROFILE_FACTORS[profile]
@@ -626,8 +670,19 @@ class LifeService:
         food_monthly = food_basket * factors["food_baskets"]
         fuel_monthly = petrol_92 * factors["fuel_litres"]
         shelter_monthly = rent_base * factors["housing"]
+        return food_monthly, fuel_monthly, shelter_monthly
 
-        return round(0.45 * food_monthly + 0.20 * fuel_monthly + 0.35 * shelter_monthly, 0)
+    def _mvp_survival_monthly(self, domains: list[DomainSignal], *, district: str, profile: str) -> float:
+        food_monthly, fuel_monthly, shelter_monthly = self._mvp_survival_components(
+            domains,
+            district=district,
+            profile=profile,
+        )
+        weights = self.MVP_SURVIVAL_WEIGHTS
+        return round(
+            weights["food"] * food_monthly + weights["fuel"] * fuel_monthly + weights["property"] * shelter_monthly,
+            0,
+        )
 
     def _mvp_survival_trend(self, current_total: float, prior_snapshot: LifeIndexSnapshot | None) -> Literal["up", "down", "flat"]:
         if prior_snapshot is None:
@@ -649,10 +704,46 @@ class LifeService:
     ) -> SurvivalIndexResponse:
         if profile not in PROFILE_FACTORS:
             profile = "family"
-        weighted_total = self._mvp_survival_monthly(domains, district=district, profile=profile)
+        domain_map = {domain.key: domain for domain in domains}
+        food_monthly, fuel_monthly, shelter_monthly = self._mvp_survival_components(
+            domains,
+            district=district,
+            profile=profile,
+        )
+        weights = self.MVP_SURVIVAL_WEIGHTS
+        weighted_total = round(
+            weights["food"] * food_monthly + weights["fuel"] * fuel_monthly + weights["property"] * shelter_monthly,
+            0,
+        )
         baseline = self._mvp_survival_monthly(domains, district="Sri Lanka", profile=profile)
         index_score = round(100 * weighted_total / baseline) if baseline > 0 else 100.0
         trend = self._mvp_survival_trend(weighted_total, prior_snapshot)
+        breakdown = [
+            AffordabilityBreakdownItem(
+                key="food",
+                label="Food and groceries",
+                monthly_lkr=round(food_monthly, 0),
+                confidence=self._mvp_sister_domain_confidence(domain_map.get("food")),
+                source_domains=["food"],
+                note="MVP Cost of Life input from FoodLK essentials basket and household profile.",
+            ),
+            AffordabilityBreakdownItem(
+                key="fuel",
+                label="Fuel",
+                monthly_lkr=round(fuel_monthly, 0),
+                confidence=self._mvp_sister_domain_confidence(domain_map.get("fuel")),
+                source_domains=["fuel"],
+                note="MVP Cost of Life input from latest Petrol 92 rate and profile-specific litres per month.",
+            ),
+            AffordabilityBreakdownItem(
+                key="property",
+                label="Shelter pressure",
+                monthly_lkr=round(shelter_monthly, 0),
+                confidence=self._mvp_sister_domain_confidence(domain_map.get("property")),
+                source_domains=["property"],
+                note="MVP Cost of Life input from district shelter proxy until rental-yield signals are normalized centrally.",
+            ),
+        ]
         return SurvivalIndexResponse(
             district=district,
             profile=profile,
@@ -666,6 +757,8 @@ class LifeService:
             ),
             index_score=index_score,
             trend=trend,
+            breakdown=breakdown,
+            weights=weights,
         )
 
     def source_health(self, domains: list[DomainSignal]) -> dict[str, int | float]:
