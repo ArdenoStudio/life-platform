@@ -464,7 +464,13 @@ class LifeService:
             .order_by(desc(LifeIndexSnapshot.observed_at), desc(LifeIndexSnapshot.id))
             .limit(1)
         )
-        affordability = self.affordability_from_signals(db, domains, district=district, profile=profile)
+        affordability = self.affordability_from_signals(
+            db,
+            domains,
+            district=district,
+            profile=profile,
+            persist_snapshot=False,
+        )
         survival_confidence = self._mvp_derived_confidence(domains, passed_confidence="high")
         survival_index = self._mvp_survival_index(
             domains,
@@ -498,6 +504,7 @@ class LifeService:
             headline=headline,
             freshness_note=freshness_note,
             domains=domains,
+            sister_domains=[domain for domain in domains if domain.key in self.MVP_SURVIVAL_WEIGHTS],
             affordability=affordability,
             survival_index=survival_index,
             top_movers=movers,
@@ -511,6 +518,7 @@ class LifeService:
         *,
         district: str = "Sri Lanka",
         profile: str = "family",
+        persist_snapshot: bool = True,
     ) -> AffordabilityResponse:
         if profile not in PROFILE_FACTORS:
             profile = "family"
@@ -523,8 +531,8 @@ class LifeService:
         avg_vehicle_price = self._metric_value(domain_map.get("vehicle"), "Average price")
 
         rent_base = DISTRICT_RENT_BASE.get(district, DISTRICT_RENT_BASE.get("Sri Lanka", 55000))
-        if avg_property_price and avg_property_price > 1_000_000:
-            # A conservative monthly rental proxy when a rental endpoint is not available.
+        if district == "Sri Lanka" and avg_property_price and avg_property_price > 1_000_000:
+            # National-only rental proxy when district-level rent feeds are unavailable.
             rent_base = max(rent_base, min(avg_property_price * 0.0022, 185000))
 
         vehicle_monthly = 0
@@ -611,18 +619,19 @@ class LifeService:
                 "Utility and transport rows are source-labelled planning inputs; direct tariff/import extraction still requires operator review.",
             ],
         )
-        db.add(
-            LifeIndexSnapshot(
-                profile=profile,
-                district=district,
-                total_lkr=total,
-                confidence=confidence,
-                breakdown={item.key: item.model_dump() for item in breakdown},
-                assumptions=response.assumptions,
-                observed_at=response.generated_at,
+        if persist_snapshot:
+            db.add(
+                LifeIndexSnapshot(
+                    profile=profile,
+                    district=district,
+                    total_lkr=total,
+                    confidence=confidence,
+                    breakdown={item.key: item.model_dump() for item in breakdown},
+                    assumptions=response.assumptions,
+                    observed_at=response.generated_at,
+                )
             )
-        )
-        db.commit()
+            db.commit()
         return response
 
     MVP_SURVIVAL_WEIGHTS: dict[str, float] = {"food": 0.45, "fuel": 0.20, "property": 0.35}
@@ -667,7 +676,7 @@ class LifeService:
         avg_property_price = self._metric_value(domain_map.get("property"), "Average price")
 
         rent_base = DISTRICT_RENT_BASE.get(district, DISTRICT_RENT_BASE.get("Sri Lanka", 55000))
-        if avg_property_price and avg_property_price > 1_000_000:
+        if district == "Sri Lanka" and avg_property_price and avg_property_price > 1_000_000:
             rent_base = max(rent_base, min(avg_property_price * 0.0022, 185000))
 
         food_monthly = food_basket * factors["food_baskets"]

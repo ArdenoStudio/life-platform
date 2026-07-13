@@ -284,6 +284,7 @@ class LifeOverviewResponse(BaseModel):
     headline: str
     freshness_note: str
     domains: list[DomainSignal]
+    sister_domains: list[DomainSignal]
     affordability: AffordabilityResponse
     survival_index: SurvivalIndexResponse
     top_movers: list[DomainHighlight]

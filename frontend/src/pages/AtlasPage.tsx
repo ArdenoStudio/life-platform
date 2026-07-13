@@ -2,13 +2,13 @@ import { ExternalLink, Map as MapIcon, Navigation, Radar, Scale } from 'lucide-r
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { PolarAngleAxis, PolarGrid, Radar as RadarShape, RadarChart, ResponsiveContainer } from 'recharts'
 
-import { AtlasPanel } from '../components/AtlasPanel'
+import { PageContextBar } from '../components/PageContextBar'
+import { PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { SisterSignalCard } from '../components/SisterSignalCard'
 import { SourcePill } from '../components/SourcePill'
-import { BackgroundBeams, BorderBeam, SignalMap, Spotlight } from '../components/ui/AceternityPrimitives'
-import { domainLabel, profileLabel, t } from '../i18n'
+import { domainLabel, t } from '../i18n'
 import { addArivaUtm } from '../lib/deepLink'
-import { districts, domainMeta, formatNumber, formatPercent, profiles } from '../lib/format'
+import { districts, domainMeta, formatNumber, formatPercent } from '../lib/format'
 import type { AreaScoreResponse, AtlasResponse, DistrictProfile, DomainSignal, LocaleCode, Profile } from '../types'
 
 const PROPERTYLK_FALLBACK_URL = 'https://propertylk-one.vercel.app'
@@ -52,7 +52,6 @@ export function AtlasPage({
   profile,
   propertyDomain,
   setDistrict,
-  setProfile,
 }: {
   atlas: AtlasResponse | undefined
   district: string
@@ -60,7 +59,7 @@ export function AtlasPage({
   profile: Profile
   propertyDomain?: DomainSignal
   setDistrict: Dispatch<SetStateAction<string>>
-  setProfile: Dispatch<SetStateAction<Profile>>
+  setProfile?: Dispatch<SetStateAction<Profile>>
 }) {
   const selected = atlas?.selected
   const selectedProfile = atlas?.selected_profile
@@ -125,10 +124,19 @@ export function AtlasPage({
 
   return (
     <div className="space-y-5">
+      <PageContextBar
+        district={district}
+        kicker={t(locale, 'atlas')}
+        locale={locale}
+        profile={profile}
+        subtitle={atlas?.narrative ?? t(locale, 'districtScoreFallback')}
+        title={selected?.district ?? district}
+      />
+
       {propertyDomain ? (
         <SisterSignalCard domain={propertyDomain} kickerKey="sisterShelter" locale={locale} />
       ) : (
-        <AtlasPanel>
+        <PulsePanel tone="paper">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${domainMeta.property.bg}`} style={{ color: domainMeta.property.accent }}>
@@ -150,68 +158,44 @@ export function AtlasPage({
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
-        </AtlasPanel>
+        </PulsePanel>
       )}
 
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-        <AtlasPanel className="relative overflow-hidden bg-ink text-paper">
-          <BackgroundBeams />
-          <Spotlight />
-          <BorderBeam colorFrom="#d5aa41" colorTo="#225e45" duration={9} />
-          <SignalMap className="absolute -bottom-16 right-0 w-64 opacity-20" />
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">{t(locale, 'atlas')}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-normal">{selected?.district ?? district}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-paper/72">{atlas?.narrative ?? t(locale, 'districtScoreFallback')}</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <label className="atlas-control light">
-              {t(locale, 'district')}
-              <select value={district} onChange={(event) => setDistrict(event.target.value)}>
-                {districts.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <label className="atlas-control light">
-              {t(locale, 'profile')}
-              <select value={profile} onChange={(event) => setProfile(event.target.value as Profile)}>
-                {profiles.map((item) => (
-                  <option key={item.key} value={item.key}>
-                    {profileLabel(locale, item.key)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <PulsePanel tone="muted" className="relative overflow-hidden">
+          <PulseKicker>{t(locale, 'atlas')}</PulseKicker>
+          <h2 className="mt-3 font-display text-4xl font-semibold tracking-normal text-paper">{selected?.district ?? district}</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-paper/75">{atlas?.narrative ?? t(locale, 'districtScoreFallback')}</p>
           <div className="mt-8 grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-white/15 bg-white/10 p-4">
               <p className="text-xs uppercase tracking-[0.14em] text-paper/55">{t(locale, 'lifeScore')}</p>
-              <p className="mt-2 text-4xl font-semibold">{selected?.score ?? 0}</p>
+              <p className="mt-2 text-4xl font-semibold text-paper">{selected?.score ?? 0}</p>
             </div>
             <div className="rounded-lg border border-white/15 bg-white/10 p-4">
               <p className="text-xs uppercase tracking-[0.14em] text-paper/55">{t(locale, 'grade')}</p>
-              <p className="mt-2 text-4xl font-semibold">{selected?.grade ?? 'N/A'}</p>
+              <p className="mt-2 text-4xl font-semibold text-paper">{selected?.grade ?? 'N/A'}</p>
             </div>
           </div>
-        </AtlasPanel>
+        </PulsePanel>
 
-        <AtlasPanel>
+        <PulsePanel>
           <div className="flex items-center gap-2">
-            <Radar className="h-5 w-5 text-steel" aria-hidden="true" />
-            <h2 className="text-2xl font-semibold text-ink">{t(locale, 'areaScores')}</h2>
+            <Radar className="h-5 w-5 text-gold" aria-hidden="true" />
+            <h2 className="text-2xl font-semibold text-paper">{t(locale, 'areaScores')}</h2>
           </div>
-          <div className="mt-5 h-80">
+          <div className="mt-5 h-80" role="img" aria-label={t(locale, 'areaScores')}>
             <ResponsiveContainer height="100%" width="100%">
               <RadarChart data={radarData}>
-                <PolarGrid stroke="#d7c8a8" />
-                <PolarAngleAxis dataKey="metric" tick={{ fill: '#6f695d', fontSize: 12 }} />
-                <RadarShape dataKey="score" fill="#315f7d" fillOpacity={0.28} stroke="#315f7d" strokeWidth={2} />
+                <PolarGrid stroke="rgba(255,255,255,0.12)" />
+                <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
+                <RadarShape dataKey="score" fill="#d5aa41" fillOpacity={0.28} stroke="#d5aa41" strokeWidth={2} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
-        </AtlasPanel>
+        </PulsePanel>
       </section>
 
-      <AtlasPanel>
+      <PulsePanel>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -284,10 +268,10 @@ export function AtlasPage({
             </div>
           </div>
         </div>
-      </AtlasPanel>
+      </PulsePanel>
 
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <AtlasPanel>
+        <PulsePanel>
           <div className="flex items-center gap-2">
             <MapIcon className="h-5 w-5 text-leaf" aria-hidden="true" />
             <h2 className="text-2xl font-semibold text-ink">{t(locale, 'districtHeatPanels')}</h2>
@@ -306,9 +290,9 @@ export function AtlasPage({
               </button>
             ))}
           </div>
-        </AtlasPanel>
+        </PulsePanel>
 
-        <AtlasPanel>
+        <PulsePanel>
           <div className="flex items-center gap-2">
             <Navigation className="h-5 w-5 text-chili" aria-hidden="true" />
             <h2 className="text-2xl font-semibold text-ink">{t(locale, 'scoreAnatomy')}</h2>
@@ -326,11 +310,11 @@ export function AtlasPage({
               </div>
             ))}
           </div>
-        </AtlasPanel>
+        </PulsePanel>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-        <AtlasPanel>
+        <PulsePanel>
           <p className="atlas-label">District profile</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-line bg-stone-50 p-3">
@@ -358,9 +342,9 @@ export function AtlasPage({
               <p className="mt-1 text-lg font-semibold text-ink">{formatPercent(selectedProfile?.elderly_share)}</p>
             </div>
           </div>
-        </AtlasPanel>
+        </PulsePanel>
 
-        <AtlasPanel>
+        <PulsePanel>
           <p className="atlas-label">Score methodology</p>
           <div className="mt-4 space-y-3">
             {(atlas?.methodology ?? []).map((item) => (
@@ -369,17 +353,17 @@ export function AtlasPage({
               </p>
             ))}
           </div>
-        </AtlasPanel>
+        </PulsePanel>
       </section>
 
-      <AtlasPanel>
+      <PulsePanel>
         <p className="atlas-label">{t(locale, 'atlasSources')}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {(atlas?.sources ?? []).slice(0, 12).map((source) => (
             <SourcePill key={source.key} locale={locale} source={source} />
           ))}
         </div>
-      </AtlasPanel>
+      </PulsePanel>
     </div>
   )
 }

@@ -106,6 +106,7 @@ const overview: LifeOverviewResponse = {
   headline: 'Ariva reads Sri Lanka living signals across food, fuel, property, vehicles, and daily costs.',
   freshness_note: 'Live-powered summaries with short caching.',
   domains,
+  sister_domains: domains.filter((item) => item.key === 'food' || item.key === 'fuel' || item.key === 'property'),
   affordability: {
     district: 'Sri Lanka',
     profile: 'family',
@@ -517,9 +518,9 @@ describe('Ariva', () => {
 
     expect(await screen.findByRole('heading', { name: 'Cost comparison' })).toBeInTheDocument()
     expect(screen.getByText('Cost of Life')).toBeInTheDocument()
-    expect(screen.getByText('Food')).toBeInTheDocument()
-    expect(screen.getByText('Fuel')).toBeInTheDocument()
-    expect(screen.getByText('Shelter')).toBeInTheDocument()
+    expect(screen.getAllByText('Food').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Fuel').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Shelter').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByLabelText('Compare against')).toHaveValue('Kandy')
   })
 

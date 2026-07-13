@@ -28,6 +28,12 @@ function formatWeightTeaser(locale: LocaleCode, weights: SurvivalIndexResponse['
   return parts.length ? parts.join(' · ') : null
 }
 
+function trendLabel(locale: LocaleCode, trend: Trend) {
+  if (trend === 'up') return t(locale, 'trendUp')
+  if (trend === 'down') return t(locale, 'trendDown')
+  return t(locale, 'trendFlat')
+}
+
 function trendTone(trend: Trend) {
   if (trend === 'up') return 'border-chili/35 bg-chili/15 text-[#ffd7d2]'
   if (trend === 'down') return 'border-leaf/35 bg-leaf/15 text-[#d9f5e8]'
@@ -56,9 +62,9 @@ export function CostOfLifeHero({
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
         <SourceClassPill locale={locale} sourceType="derived" />
-        <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 capitalize ${trendTone(trend)}`}>
+        <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 ${trendTone(trend)}`}>
           <TrendIcon trend={trend} />
-          {trend}
+          {trendLabel(locale, trend)}
         </span>
         <span className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-paper/80">
           {t(locale, 'compareConfidence').replace('{confidence}', survivalIndex.confidence)}
@@ -89,7 +95,7 @@ export function CostOfLifeHero({
         label={t(locale, 'dailyTotal')}
         note={
           hasIndexScore
-            ? `${t(locale, 'monthlyPressureCurve')}: ${formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)} · ${trend}`
+            ? `${t(locale, 'monthlyPressureCurve')}: ${formatLkrLocale(survivalIndex.monthly_lkr, lkrLocale)} · ${trendLabel(locale, trend)}`
             : survivalIndex.disclaimer
         }
         tone="blue"

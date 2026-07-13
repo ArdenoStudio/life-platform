@@ -169,6 +169,9 @@ def test_life_overview_returns_all_domains(client):
     }
     assert payload["affordability"]["total_monthly_lkr"] > 0
     assert payload["source_health"]["total"] == 11
+    sister_keys = {domain["key"] for domain in payload["sister_domains"]}
+    assert sister_keys == {"food", "fuel", "property"}
+    assert len(payload["sister_domains"]) == 3
     source_keys = {source["key"] for domain in payload["domains"] for source in domain["sources"]}
     assert {
         "dcs-census-2024",
@@ -204,8 +207,8 @@ def test_life_overview_survival_index_is_district_specific(client):
     survival = payload["survival_index"]
     assert survival["district"] == "Colombo"
     assert survival["profile"] == "commuter"
-    assert survival["index_score"] == national["index_score"]
-    assert survival["monthly_lkr"] == national["monthly_lkr"]
+    assert survival["monthly_lkr"] != national["monthly_lkr"]
+    assert survival["monthly_lkr"] < national["monthly_lkr"]
     assert survival["monthly_lkr"] < payload["affordability"]["total_monthly_lkr"]
     assert survival["trend"] in {"up", "down", "flat"}
     assert round(survival["daily_lkr"], 0) == round(survival["monthly_lkr"] / 30.4, 0)
@@ -264,6 +267,24 @@ def test_life_domains_records_snapshots(client):
     trends = client.get("/api/v1/life/trends?domain=food")
     assert trends.status_code == 200
     assert len(trends.json()["points"]) >= 1
+
+
+def test_life_overview_rejects_unknown_district(client):
+    response = client.get("/api/v1/life/overview?district=NotADistrict")
+    assert response.status_code == 422
+
+
+def test_mvp_derived_confidence_downgrades_when_sister_degraded(client):
+    from app.schemas import DomainSignal
+    from app.services.life_service import LifeService
+
+    overview = client.get("/api/v1/life/overview").json()
+    domains = [DomainSignal.model_validate(domain) for domain in overview["domains"]]
+    food = next(domain for domain in domains if domain.key == "food")
+    food.status = "degraded"
+    service = LifeService.__new__(LifeService)
+    confidence = service._mvp_derived_confidence(domains, passed_confidence="high")
+    assert confidence == "medium"
 
 
 def test_life_search_finds_domain_and_metric(client):

@@ -339,8 +339,6 @@ function AppContent() {
             locale={activeLocale}
             profile={activeProfile}
             setActivePage={setActivePage}
-            setDistrict={setDistrict}
-            setProfile={setProfile}
             transport={transportQuery.data}
             utilities={utilitiesQuery.data}
           />
@@ -374,7 +372,9 @@ function AppContent() {
         {activePage === 'move' ? (
           <MovePage
             costCommand={costQuery.data}
+            district={activeDistrict}
             locale={activeLocale}
+            profile={activeProfile}
             setActivePage={setActivePage}
             transport={transportQuery.data}
           />
@@ -387,8 +387,6 @@ function AppContent() {
             locale={activeLocale}
             profile={activeProfile}
             setCompareDistrict={setCompareDistrict}
-            setDistrict={setDistrict}
-            setProfile={setProfile}
           />
         ) : null}
       </Suspense>

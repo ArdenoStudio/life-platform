@@ -97,6 +97,7 @@ export interface LifeOverviewResponse {
   headline: string
   freshness_note: string
   domains: DomainSignal[]
+  sister_domains: DomainSignal[]
   affordability: AffordabilityResponse
   survival_index: SurvivalIndexResponse
   top_movers: DomainHighlight[]

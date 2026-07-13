@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -21,8 +21,11 @@ from app.schemas import (
     WeatherRiskResponse,
 )
 from app.services.life_service import LifeService
+from app.services.living_atlas_data import DISTRICTS
 
 router = APIRouter()
+
+VALID_OVERVIEW_DISTRICTS = set(DISTRICTS) | {"Sri Lanka"}
 
 
 def get_life_service() -> LifeService:
@@ -36,6 +39,8 @@ async def life_overview(
     db: Session = Depends(get_db),
     service: LifeService = Depends(get_life_service),
 ):
+    if district not in VALID_OVERVIEW_DISTRICTS:
+        raise HTTPException(status_code=422, detail=f"Unknown district: {district}")
     return await service.overview(db, district=district, profile=profile)
 
 
