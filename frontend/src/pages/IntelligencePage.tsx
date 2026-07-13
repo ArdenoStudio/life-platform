@@ -2,7 +2,7 @@ import { BellPlus, BookmarkPlus, Brain, Search, TrendingUp } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { PageContextBar } from '../components/PageContextBar'
-import { IconInput } from '../components/ui/AceternityPrimitives'
+import { PulseSearchField } from '../components/PulseSearchField'
 import { PulseInnerCard, PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { SourcePill } from '../components/SourcePill'
 import { domainLabel, statusLabel, t } from '../i18n'
@@ -55,12 +55,13 @@ export function IntelligencePage({
           </div>
           <p className="mt-3 text-sm leading-6 text-paper/75">{t(locale, 'intelligenceIntro')}</p>
           <div className="mt-6">
-            <IconInput
-              className="[&_.icon-input__field]:h-11 [&_.icon-input__field]:border-white/15 [&_.icon-input__field]:bg-white/10 [&_.icon-input__field]:text-paper"
+            <PulseSearchField
+              className="[&_.pulse-search-field__input]:h-11"
               icon={Search}
               label={t(locale, 'search')}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t(locale, 'search')}
+              type="search"
               value={searchQuery}
             />
           </div>

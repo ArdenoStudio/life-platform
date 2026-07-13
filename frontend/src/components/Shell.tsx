@@ -1,4 +1,4 @@
-import { Bell, Globe2, LayoutDashboard, LogIn, LogOut, Map, Route, Scale, Search, ShieldCheck, WalletCards } from 'lucide-react'
+import { Bell, Globe2, LayoutDashboard, LogIn, LogOut, Map, Route, Scale, ShieldCheck, WalletCards } from 'lucide-react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 
 import type { LifeAuthUser } from '../auth/AuthContext'
@@ -7,7 +7,7 @@ import { districts, profiles } from '../lib/format'
 import { resolvePage } from '../lib/pages'
 import type { LocaleCode, PageKey, Profile, SearchResult } from '../types'
 import { BrandMark } from './BrandMark'
-import { FloatingSurface, IconInput } from './ui/AceternityPrimitives'
+import { ShellSearchCombobox } from './ShellSearchCombobox'
 
 const navItems = [
   { key: 'home', labelKey: 'today', icon: LayoutDashboard },
@@ -81,7 +81,7 @@ export function Shell({
     <div className="min-h-screen overflow-x-clip">
       <header className="floating-shell">
         <div className="mx-auto w-full max-w-[1480px] px-3 py-3 lg:px-6">
-          <FloatingSurface className="flex flex-col gap-3 px-3 py-3">
+          <div className="floating-surface flex flex-col gap-3 px-3 py-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <button
                 className="flex items-center gap-3 text-left"
@@ -92,7 +92,7 @@ export function Shell({
               >
                 <BrandMark compact />
                 <span>
-                  <span className="block text-xl font-black leading-none tracking-normal text-paper">{t(locale, 'brandName')}</span>
+                  <span className="block font-display text-xl font-extrabold leading-none tracking-tight text-paper">{t(locale, 'brandName')}</span>
                   <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-gold">{t(locale, 'livingAtlas')}</span>
                 </span>
               </button>
@@ -119,11 +119,11 @@ export function Shell({
               </nav>
 
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_auto_auto]">
-                <label className="relative flex h-10 min-w-[8rem] items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 text-xs font-semibold text-paper">
+                <label className="shell-context-field">
                   <Map className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <select
                     aria-label={t(locale, 'homeDistrict')}
-                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-paper outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+                    className="shell-context-field__control"
                     onChange={(event) => setDistrict(event.target.value)}
                     value={district}
                   >
@@ -134,10 +134,10 @@ export function Shell({
                     ))}
                   </select>
                 </label>
-                <label className="relative flex h-10 min-w-[8rem] items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 text-xs font-semibold text-paper">
+                <label className="shell-context-field">
                   <select
                     aria-label={t(locale, 'profile')}
-                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-paper outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+                    className="shell-context-field__control"
                     onChange={(event) => setProfile(event.target.value as Profile)}
                     value={profile}
                   >
@@ -148,11 +148,11 @@ export function Shell({
                     ))}
                   </select>
                 </label>
-                <label className="relative flex h-10 min-w-[8.5rem] items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 text-xs font-semibold text-paper">
-                  <Globe2 className="h-4 w-4" aria-hidden="true" />
+                <label className="shell-context-field">
+                  <Globe2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <select
                     aria-label={t(locale, 'locale')}
-                    className="h-full flex-1 bg-transparent text-sm text-paper outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+                    className="shell-context-field__control"
                     onChange={(event) => setLocale(event.target.value as LocaleCode)}
                     value={locale}
                   >
@@ -178,7 +178,7 @@ export function Shell({
                     </button>
                   ) : (
                     <button
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gold/55 bg-gold/15 px-3 text-sm font-bold text-gold hover:bg-gold/20"
+                      className="inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-lg border border-gold/55 bg-gold/15 px-3 text-sm font-bold text-gold hover:bg-gold/20"
                       disabled={authLoading}
                       onClick={() => void signIn()}
                       type="button"
@@ -191,43 +191,26 @@ export function Shell({
               </div>
             </div>
 
-            <div className="relative min-w-0">
-              <IconInput
-                icon={Search}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={t(locale, 'search')}
-                type="search"
-                value={searchQuery}
-                label={t(locale, 'search')}
-              />
-              {searchQuery.trim().length > 1 && searchResults.length > 0 ? (
-                <div className="absolute right-0 top-12 z-40 w-full rounded-lg border border-gold/20 bg-paper p-2 text-ink shadow-[0_26px_80px_-45px_rgba(0,0,0,.8)]">
-                  {searchResults.slice(0, 5).map((result) => (
-                    <button
-                      key={`${result.domain}-${result.label}`}
-                      className="block w-full rounded-md px-3 py-2 text-left hover:bg-white"
-                      onClick={() => {
-                        if (result.href) {
-                          navigateFromHref(result.href, setActivePage)
-                        } else {
-                          setActivePage('decide')
-                        }
-                        setSearchQuery('')
-                      }}
-                      type="button"
-                    >
-                      <span className="block text-sm font-semibold text-ink">{result.label}</span>
-                      <span className="block truncate text-xs text-muted">{result.description}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </FloatingSurface>
+            <ShellSearchCombobox
+              label={t(locale, 'search')}
+              onChange={setSearchQuery}
+              onSelectResult={(result) => {
+                if (result.href) {
+                  navigateFromHref(result.href, setActivePage)
+                } else {
+                  setActivePage('decide')
+                }
+                setSearchQuery('')
+              }}
+              placeholder={t(locale, 'search')}
+              results={searchResults}
+              value={searchQuery}
+            />
+          </div>
         </div>
       </header>
 
-      <main className="relative mx-auto w-full max-w-[1480px] px-3 py-5 lg:px-6 lg:py-6">{children}</main>
+      <main className="pulse-main relative mx-auto w-full max-w-[1480px] px-3 py-5 lg:px-6 lg:py-6">{children}</main>
     </div>
   )
 }

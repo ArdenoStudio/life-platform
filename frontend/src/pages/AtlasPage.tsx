@@ -204,10 +204,9 @@ export function AtlasPage({
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-paper/75">{leadSummary(selected, comparison)}</p>
           </div>
-          <label className="atlas-control on-paper min-w-[14rem]">
+          <label className="atlas-control min-w-[14rem]">
             {t(locale, 'compareAgainst')}
             <select
-              className="border-line bg-white text-paper"
               value={effectiveCompareDistrict}
               onChange={(event) => setCompareDistrict(event.target.value)}
             >
