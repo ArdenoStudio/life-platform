@@ -265,12 +265,23 @@ class AffordabilityResponse(BaseModel):
     assumptions: list[str]
 
 
+class SurvivalIndexResponse(BaseModel):
+    district: str
+    profile: Literal["single", "family", "commuter"]
+    monthly_lkr: float
+    daily_lkr: float
+    confidence: Confidence
+    label: str = "Cost of Life"
+    disclaimer: str
+
+
 class LifeOverviewResponse(BaseModel):
     generated_at: datetime
     headline: str
     freshness_note: str
     domains: list[DomainSignal]
     affordability: AffordabilityResponse
+    survival_index: SurvivalIndexResponse
     top_movers: list[DomainHighlight]
     source_health: dict[str, int | float]
 

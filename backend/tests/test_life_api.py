@@ -139,6 +139,14 @@ def test_life_overview_returns_all_domains(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["headline"].startswith("Ariva reads Sri Lanka")
+    survival = payload["survival_index"]
+    assert survival["district"] == "Sri Lanka"
+    assert survival["profile"] == "family"
+    assert survival["monthly_lkr"] > 0
+    assert survival["daily_lkr"] > 0
+    assert survival["confidence"] in {"high", "medium", "low"}
+    assert survival["label"] == "Cost of Life"
+    assert survival["disclaimer"]
     assert {domain["key"] for domain in payload["domains"]} == {
         "food",
         "fuel",
@@ -176,6 +184,17 @@ def test_life_overview_returns_all_domains(client):
     assert sources["public-lk-weather-3h"]["license_status"] == "permissive"
     assert sources["public-lk-weather-3h"]["refresh_cadence"] == "scheduled refresh plus manual trigger"
     assert sources["propertylk-platform"]["review_status"] == "approved"
+
+
+def test_life_overview_survival_index_is_district_specific(client):
+    response = client.get("/api/v1/life/overview?district=Colombo&profile=commuter")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["headline"].startswith("Ariva reads living signals for Colombo")
+    survival = payload["survival_index"]
+    assert survival["district"] == "Colombo"
+    assert survival["profile"] == "commuter"
+    assert survival["monthly_lkr"] > payload["affordability"]["total_monthly_lkr"]
 
 
 def test_life_domains_records_snapshots(client):

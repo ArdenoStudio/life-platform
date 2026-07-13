@@ -50,6 +50,7 @@ from app.schemas import (
     I18nResponse,
     InsightsResponse,
     LifeOverviewResponse,
+    SurvivalIndexResponse,
     PipelineDomainStatus,
     PipelineResponse,
     PublicInsight,
@@ -453,15 +454,30 @@ class LifeService:
     async def overview(self, db: Session, *, district: str = "Sri Lanka", profile: str = "family") -> LifeOverviewResponse:
         domains = await self.get_domain_signals(db)
         affordability = self.affordability_from_signals(db, domains, district=district, profile=profile)
+        cost = await self.cost_command(db, district=district, profile=profile, locale="en")
+        confidence = "medium" if all(domain.status != "offline" for domain in domains) else "low"
+        survival_index = SurvivalIndexResponse(
+            district=cost.district,
+            profile=cost.profile,
+            monthly_lkr=cost.total_monthly_lkr,
+            daily_lkr=cost.daily_lkr,
+            confidence=confidence,
+            disclaimer=cost.assumptions[0] if cost.assumptions else "This is a public planning estimate, not a personal finance account.",
+        )
         health = self.source_health(domains)
         movers = self.top_movers(domains)
         freshness_note = "Live-powered summaries with short caching; each domain exposes its own source freshness."
+        if district != "Sri Lanka":
+            headline = f"Ariva reads living signals for {district} across food, fuel, property, vehicles, and daily costs."
+        else:
+            headline = "Ariva reads Sri Lanka living signals across food, fuel, property, vehicles, and daily costs."
         return LifeOverviewResponse(
             generated_at=utc_now(),
-            headline="Ariva reads Sri Lanka living signals across food, fuel, property, vehicles, and daily costs.",
+            headline=headline,
             freshness_note=freshness_note,
             domains=domains,
             affordability=affordability,
+            survival_index=survival_index,
             top_movers=movers,
             source_health=health,
         )
