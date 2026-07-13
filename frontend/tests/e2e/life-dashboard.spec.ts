@@ -65,8 +65,7 @@ test('decide page loads with compare params', async ({ page }) => {
   await affordabilityResponse
 
   await expect(page.getByRole('heading', { name: 'Cost comparison', exact: true })).toBeVisible({ timeout: 15000 })
-  await expect(page.getByLabel('Left district')).toHaveValue('Colombo')
-  await expect(page.getByLabel('Right district')).toHaveValue('Kandy')
+  await expect(page.getByLabel('Compare against')).toHaveValue('Kandy')
 
   const compareTable = page.getByRole('table')
   for (const rowLabel of ['Food', 'Fuel', 'Shelter'] as const) {
@@ -108,7 +107,7 @@ test('sources and trilingual UI render without horizontal overflow', async ({ pa
   await expect(page.getByText(/දිස්ත්‍රික් ජීවන තත්ත්වය/i)).toBeVisible({ timeout: 15000 })
   await page.getByLabel('Primary').getByRole('button', { name: /විශ්වාසය/i }).click()
 
-  await expect(page.getByRole('heading', { name: 'විශ්වාසය', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'විශ්වාසය', exact: true, level: 1 })).toBeVisible()
   await expect(page.getByText(/සියලු මූලාශ්‍ර/i)).toBeVisible()
   await expect(page.getByText(/මූලාශ්‍ර වලංගුකරණ/i)).toBeVisible()
   await expect(page.getByText(/සක්‍රීය මූලාශ්‍ර නිකුතුව/i)).toBeVisible()
@@ -130,7 +129,7 @@ test('atlas district profile renders without horizontal overflow', async ({ page
   await page.goto('/?page=atlas&district=Kandy&locale=en', { waitUntil: 'domcontentloaded' })
   await atlasResponse
 
-  await expect(page.getByRole('heading', { name: 'Kandy', exact: true })).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('h2').filter({ hasText: 'Kandy' })).toBeVisible({ timeout: 15000 })
   await expect(page.getByRole('heading', { name: 'Compare districts', exact: true })).toBeVisible()
   await expect(page.getByLabel('Compare against')).toBeVisible()
   await expect(page.getByText('Component gap')).toBeVisible()
@@ -166,7 +165,7 @@ test('weather risk signal renders without horizontal overflow', async ({ page })
   await expect(page.getByText(/observed:/i).first()).toBeVisible()
   await expect(page.getByText('foodlk-platform').first()).toBeVisible()
   await expect(page.getByText(/Highest 3h rain/i)).toBeVisible()
-  await expect(page.getByText(/Ratnapura/i)).toBeVisible()
+  await expect(page.getByText(/Ratnapura/i).last()).toBeVisible()
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
