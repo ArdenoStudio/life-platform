@@ -411,41 +411,42 @@ function jsonResponse(payload: unknown) {
   return Promise.resolve(new Response(JSON.stringify(payload), { headers: { 'Content-Type': 'application/json' } }))
 }
 
+function createMockFetch(overviewPayload: LifeOverviewResponse = overview) {
+  return (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('/life/affordability')) {
+      const parsed = new URL(url, 'http://test.local')
+      const district = parsed.searchParams.get('district') ?? 'Sri Lanka'
+      return jsonResponse(affordabilityForDistrict(district))
+    }
+    if (url.includes('/life/overview')) return jsonResponse(overviewPayload)
+    if (url.includes('/life/domains')) return jsonResponse({ items: domains })
+    if (url.includes('/life/search')) return jsonResponse([{ domain: 'fuel', label: 'Octane: Petrol 92', description: '410 LKR/litre', href: '/domains/fuel', score: 80 }])
+    if (url.includes('/life/cost-command')) return jsonResponse(costCommand)
+    if (url.includes('/life/atlas')) return jsonResponse(atlas)
+    if (url.includes('/life/utilities')) return jsonResponse({ generated_at: overview.generated_at, district: 'Sri Lanka', electricity: [], water: [], gas: [], sources: [source] })
+    if (url.includes('/life/transport')) return jsonResponse({ generated_at: overview.generated_at, from_area: 'Colombo', to_area: 'Kandy', options: [], sources: [source] })
+    if (url.includes('/life/retail/offers')) return jsonResponse({ generated_at: overview.generated_at, query: null, district: 'Sri Lanka', offers: [], sources: [source] })
+    if (url.includes('/life/insights')) return jsonResponse(insights)
+    if (url.includes('/life/source-release')) return jsonResponse(sourceRelease)
+    if (url.includes('/life/source-validation')) return jsonResponse(sourceValidation)
+    if (url.includes('/life/pipeline')) return jsonResponse(pipeline)
+    if (url.includes('/internal/source-import-run')) return jsonResponse(sourceImportExecution)
+    if (url.includes('/internal/source-import-artifacts')) return jsonResponse(sourceImportArtifacts)
+    if (url.includes('/internal/source-data-releases')) return jsonResponse(sourceDataReleases)
+    if (url.includes('/me/life-pulse')) return jsonResponse(lifePulse)
+    if (url.includes('/me/profile')) return jsonResponse(lifePulse.profile)
+    if (url.includes('/me/saved-items')) return jsonResponse(lifePulse.saved_items[0])
+    if (url.includes('/me/alerts')) return jsonResponse(lifePulse.alert_rules[0])
+    if (url.includes('/me/notifications')) return jsonResponse({ ...lifePulse.notifications[0], read_at: overview.generated_at })
+    return jsonResponse({})
+  }
+}
+
 describe('Ariva', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/')
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((input: RequestInfo | URL) => {
-        const url = String(input)
-        if (url.includes('/life/affordability')) {
-          const parsed = new URL(url, 'http://test.local')
-          const district = parsed.searchParams.get('district') ?? 'Sri Lanka'
-          return jsonResponse(affordabilityForDistrict(district))
-        }
-        if (url.includes('/life/overview')) return jsonResponse(overview)
-        if (url.includes('/life/domains')) return jsonResponse({ items: domains })
-        if (url.includes('/life/search')) return jsonResponse([{ domain: 'fuel', label: 'Octane: Petrol 92', description: '410 LKR/litre', href: '/domains/fuel', score: 80 }])
-        if (url.includes('/life/cost-command')) return jsonResponse(costCommand)
-        if (url.includes('/life/atlas')) return jsonResponse(atlas)
-        if (url.includes('/life/utilities')) return jsonResponse({ generated_at: overview.generated_at, district: 'Sri Lanka', electricity: [], water: [], gas: [], sources: [source] })
-        if (url.includes('/life/transport')) return jsonResponse({ generated_at: overview.generated_at, from_area: 'Colombo', to_area: 'Kandy', options: [], sources: [source] })
-        if (url.includes('/life/retail/offers')) return jsonResponse({ generated_at: overview.generated_at, query: null, district: 'Sri Lanka', offers: [], sources: [source] })
-        if (url.includes('/life/insights')) return jsonResponse(insights)
-        if (url.includes('/life/source-release')) return jsonResponse(sourceRelease)
-        if (url.includes('/life/source-validation')) return jsonResponse(sourceValidation)
-        if (url.includes('/life/pipeline')) return jsonResponse(pipeline)
-        if (url.includes('/internal/source-import-run')) return jsonResponse(sourceImportExecution)
-        if (url.includes('/internal/source-import-artifacts')) return jsonResponse(sourceImportArtifacts)
-        if (url.includes('/internal/source-data-releases')) return jsonResponse(sourceDataReleases)
-        if (url.includes('/me/life-pulse')) return jsonResponse(lifePulse)
-        if (url.includes('/me/profile')) return jsonResponse(lifePulse.profile)
-        if (url.includes('/me/saved-items')) return jsonResponse(lifePulse.saved_items[0])
-        if (url.includes('/me/alerts')) return jsonResponse(lifePulse.alert_rules[0])
-        if (url.includes('/me/notifications')) return jsonResponse({ ...lifePulse.notifications[0], read_at: overview.generated_at })
-        return jsonResponse({})
-      }),
-    )
+    vi.stubGlobal('fetch', vi.fn(createMockFetch()))
   })
 
   afterEach(() => {
@@ -462,6 +463,49 @@ describe('Ariva', () => {
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'si' } })
     expect(await screen.findByText(/දිස්ත්‍රික් ජීවන තත්ත්වය/i, {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  it('renders Today pulse desk with three sister cards and trust chrome', async () => {
+    window.history.replaceState({}, '', '/?page=today&locale=en')
+    render(<App />)
+
+    expect(await screen.findByText('Cost of Life', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getByText('Living signals')).toBeInTheDocument()
+    expect(screen.getByText('Food and Grocery')).toBeInTheDocument()
+    expect(screen.getByText('Fuel', { selector: 'h3' })).toBeInTheDocument()
+    expect(screen.getByText('Property and Rent')).toBeInTheDocument()
+    expect(screen.queryByText('Vehicle Market')).not.toBeInTheDocument()
+    expect(screen.getByText('Trust release')).toBeInTheDocument()
+    expect(screen.getByText('Seed fallback')).toBeInTheDocument()
+    expect(screen.getAllByLabelText('Home district')).toHaveLength(1)
+  })
+
+  it('shows degradation banner when a sister signal is degraded', async () => {
+    const degradedOverview: LifeOverviewResponse = {
+      ...overview,
+      domains: overview.domains.map((item) => (item.key === 'fuel' ? { ...item, status: 'degraded' } : item)),
+    }
+    vi.mocked(fetch).mockImplementation(createMockFetch(degradedOverview))
+
+    window.history.replaceState({}, '', '/?page=today&locale=en')
+    render(<App />)
+
+    expect(await screen.findByText('Some signals are degraded; labels preserved.')).toBeInTheDocument()
+    expect(screen.getByText('Trust release')).toBeInTheDocument()
+  })
+
+  it('navigates shell search results with keyboard', async () => {
+    render(<App />)
+    const search = await screen.findByRole('combobox', { name: /Search food/i })
+    fireEvent.change(search, { target: { value: 'petrol' } })
+    expect(await screen.findByText('Octane: Petrol 92')).toBeInTheDocument()
+
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(search).toHaveValue('')
+    })
   })
 
   it('searches the central Ariva API and opens the signals result surface', async () => {

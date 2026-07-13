@@ -149,7 +149,7 @@ export function AtlasPage({
               </div>
             </div>
             <a
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/8 px-4 py-2 text-sm font-bold text-leaf hover:bg-white"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/8 px-4 py-2 text-sm font-bold text-leaf hover:bg-white/15"
               href={addArivaUtm(PROPERTYLK_FALLBACK_URL)}
               rel="noopener noreferrer"
               target="_blank"

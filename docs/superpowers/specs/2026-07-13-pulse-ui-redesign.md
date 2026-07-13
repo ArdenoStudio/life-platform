@@ -44,7 +44,7 @@ The MVP functional shell ships with a **marketing landing hero** (Aceternity mot
 
 - `min-h-11` touch targets on primary controls
 - `aria-current="page"` on nav
-- Shell search combobox pattern (phase 2)
+- Shell search combobox pattern (`ShellSearchCombobox` with keyboard navigation)
 - `lang` sync with locale
 
 ## Out of scope

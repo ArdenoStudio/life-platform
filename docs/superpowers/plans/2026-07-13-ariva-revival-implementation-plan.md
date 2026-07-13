@@ -43,7 +43,7 @@
 - [x] **Extract trust chrome components** — `SisterSignalCard`, `TrustStrip`, `CostOfLifeHero`, `DeepLinkButton`, `FreshnessLabel`, `SourceClassPill` in `frontend/src/components/`.
 - [x] **Rename / narrow Today page** — [`TodayPage.tsx`](../../frontend/src/pages/TodayPage.tsx) (formerly `HomePage.tsx`); MVP-only sister cards on Today.
 - [x] **MVP overview contract (backend)** — Headline mentions food / fuel / shelter only; `survival_index.breakdown` + `weights` on overview.
-- [ ] **Frontend tests** — Update [`frontend/src/App.test.tsx`](../../frontend/src/App.test.tsx) for Today-only sister layout and trust chrome presence (E2E covers sisters on home in [`life-dashboard.spec.ts`](../../frontend/tests/e2e/life-dashboard.spec.ts)).
+- [x] **Frontend tests** — [`frontend/src/App.test.tsx`](../../frontend/src/App.test.tsx): Today sister-only layout, trust chrome, degradation banner, shell search keyboard navigation.
 
 ### Phase 1 verification
 
