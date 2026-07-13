@@ -4,6 +4,51 @@ async function hasHorizontalOverflow(page: import('@playwright/test').Page) {
   return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
 }
 
+test('page=today alias loads District Life Pulse', async ({ page }) => {
+  await page.goto('/?page=today&locale=en', { waitUntil: 'domcontentloaded' })
+
+  await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
+  await expect(page.getByRole('heading', { name: /Know how Sri Lanka lives/i })).toBeVisible()
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+})
+
+test('district change updates URL', async ({ page }) => {
+  await page.goto('/?locale=en', { waitUntil: 'domcontentloaded' })
+  await expect(page.getByText(/District Life Pulse/i)).toBeVisible({ timeout: 15000 })
+
+  await page.getByLabel('Home district').selectOption('Kandy')
+  await expect.poll(() => page.url()).toContain('district=Kandy')
+})
+
+test('decide page loads with compare params', async ({ page }) => {
+  const affordabilityResponse = page.waitForResponse(
+    (response) => response.url().includes('/life/affordability') && response.status() === 200,
+    { timeout: 20000 },
+  )
+  await page.goto('/?page=decide&district=Colombo&compare=Kandy&profile=family&locale=en', {
+    waitUntil: 'domcontentloaded',
+  })
+  await affordabilityResponse
+
+  await expect(page.getByRole('heading', { name: 'Cost comparison', exact: true })).toBeVisible({ timeout: 15000 })
+  await expect(page.getByLabel('Left district')).toHaveValue('Colombo')
+  await expect(page.getByLabel('Right district')).toHaveValue('Kandy')
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+})
+
+test('move page loads', async ({ page }) => {
+  const transportResponse = page.waitForResponse(
+    (response) => response.url().includes('/life/transport') && response.status() === 200,
+    { timeout: 20000 },
+  )
+  await page.goto('/?page=move&district=Colombo&locale=en', { waitUntil: 'domcontentloaded' })
+  await transportResponse
+
+  await expect(page.getByRole('heading', { name: 'Move desk', exact: true })).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Commute and savings')).toBeVisible()
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+})
+
 test('Ariva home renders without horizontal overflow', async ({ page }) => {
   await page.goto('/?locale=en', { waitUntil: 'domcontentloaded' })
 
@@ -108,8 +153,8 @@ test('authenticated My Ariva Pulse supports save and alert actions', async ({ pa
   await expect(page.getByRole('heading', { name: 'My Ariva Pulse' })).toBeVisible({ timeout: 15000 })
   await page.getByRole('button', { name: /Save filters/i }).click()
 
-  await page.getByRole('button', { name: /Signals/i }).click()
-  await expect(page.getByRole('heading', { name: 'Signals', exact: true })).toBeVisible()
+  await page.goto('/?page=intelligence&locale=en', { waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('heading', { name: 'Signals', exact: true })).toBeVisible({ timeout: 15000 })
   await page.getByRole('button', { name: 'Save' }).first().click()
   await page.getByRole('button', { name: 'Alert' }).first().click()
 

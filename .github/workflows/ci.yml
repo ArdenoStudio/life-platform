@@ -45,6 +45,18 @@ jobs:
       - name: Build
         run: npm run build
 
+  deep-links:
+    name: Sister platform deep links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Check sister platform deep links
+        continue-on-error: true
+        run: node scripts/check-deep-links.mjs
+
   e2e:
     name: Playwright smoke
     runs-on: ubuntu-latest
