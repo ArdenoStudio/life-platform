@@ -1,6 +1,6 @@
 # Ariva District Life Pulse Revival — Design Spec
 
-**Status:** Approved for 60-day MVP  
+**Status:** Approved — implementation in progress (2026-07-13)  
 **Date:** 2026-07-13  
 **Owner:** Ariva product  
 **Supersedes:** [2026-07-11 park decision](#chronicle-supersession-of-2026-07-11-park-decision)
