@@ -85,6 +85,10 @@ export const domainMeta: Record<
   },
 }
 
+export function isDomainKey(value: string | null | undefined): value is DomainKey {
+  return value != null && value in domainMeta
+}
+
 const LEGACY_HOME_DISTRICT_KEY = 'ariva-home-district'
 
 export const HOME_DISTRICT_KEY = 'ariva.homeDistrict'

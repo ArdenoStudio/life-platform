@@ -22,6 +22,8 @@ export const validPages: PageParam[] = [
   'operator',
   'move',
   'decide',
+  'domains',
+  'affordability',
 ]
 
 export function resolvePage(page: string | null): PageKey {

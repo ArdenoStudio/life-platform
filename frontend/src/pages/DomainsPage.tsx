@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { DomainPanel } from '../components/DomainPanel'
@@ -27,16 +27,19 @@ function readOptionalItem(item: Record<string, unknown>, keys: string[]) {
 export function DomainsPage({
   district,
   domains,
+  focusedDomain = 'food',
   locale,
+  onDomainFocusChange,
   profile,
 }: {
   district: string
   domains: DomainSignal[]
+  focusedDomain?: DomainKey
   locale: LocaleCode
+  onDomainFocusChange?: (domain: DomainKey) => void
   profile: Profile
 }) {
-  const [selected, setSelected] = useState<DomainKey>('food')
-  const active = domains.find((domain) => domain.key === selected) ?? domains[0]
+  const active = domains.find((domain) => domain.key === focusedDomain) ?? domains[0]
   const chartData = useMemo(() => (active ? numericMetricRows(active.metrics).slice(0, 8) : []), [active])
 
   if (!active) {
@@ -58,14 +61,14 @@ export function DomainsPage({
             {domains.map((domain) => {
               const meta = domainMeta[domain.key]
               const Icon = meta.icon
-              const activeItem = selected === domain.key
+              const activeItem = focusedDomain === domain.key
               return (
                 <button
                   key={domain.key}
                   className={`flex w-full min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
                     activeItem ? 'border border-gold/40 bg-gold/15 text-gold' : 'text-paper hover:bg-white/8'
                   }`}
-                  onClick={() => setSelected(domain.key)}
+                  onClick={() => onDomainFocusChange?.(domain.key)}
                   type="button"
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

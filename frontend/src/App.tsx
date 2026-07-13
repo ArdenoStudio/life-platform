@@ -24,9 +24,9 @@ import {
   updateMeProfile,
 } from './lib/api'
 import { trackEvent } from './lib/analytics'
-import { districts, readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
+import { districts, isDomainKey, readStoredHomeDistrict, writeStoredHomeDistrict } from './lib/format'
 import { pageParamForUrl, resolvePage, validPages, type PageParam } from './lib/pages'
-import type { LocaleCode, PageKey, Profile } from './types'
+import type { DomainKey, LocaleCode, PageKey, Profile } from './types'
 
 const loadTodayPage = () => import('./pages/TodayPage')
 const loadCostOSPage = () => import('./pages/CostOSPage')
@@ -36,6 +36,8 @@ const loadSourcesPage = () => import('./pages/SourcesPage')
 const loadOperatorPage = () => import('./pages/OperatorPage')
 const loadMovePage = () => import('./pages/MovePage')
 const loadComparePage = () => import('./pages/ComparePage')
+const loadDomainsPage = () => import('./pages/DomainsPage')
+const loadAffordabilityPage = () => import('./pages/AffordabilityPage')
 
 const TodayPage = lazy(() => loadTodayPage().then(({ TodayPage }) => ({ default: TodayPage })))
 const CostOSPage = lazy(() => loadCostOSPage().then(({ CostOSPage }) => ({ default: CostOSPage })))
@@ -45,6 +47,8 @@ const SourcesPage = lazy(() => loadSourcesPage().then(({ SourcesPage }) => ({ de
 const OperatorPage = lazy(() => loadOperatorPage().then(({ OperatorPage }) => ({ default: OperatorPage })))
 const MovePage = lazy(() => loadMovePage().then(({ MovePage }) => ({ default: MovePage })))
 const Decide = lazy(() => loadComparePage().then(({ ComparePage }) => ({ default: ComparePage })))
+const DomainsPage = lazy(() => loadDomainsPage().then(({ DomainsPage }) => ({ default: DomainsPage })))
+const AffordabilityPage = lazy(() => loadAffordabilityPage().then(({ AffordabilityPage }) => ({ default: AffordabilityPage })))
 
 const pagePreloaders: Record<PageKey, () => Promise<unknown>> = {
   atlas: loadAtlasPage,
@@ -55,6 +59,8 @@ const pagePreloaders: Record<PageKey, () => Promise<unknown>> = {
   move: loadMovePage,
   operator: loadOperatorPage,
   sources: loadSourcesPage,
+  domains: loadDomainsPage,
+  affordability: loadAffordabilityPage,
 }
 
 const validLocales: LocaleCode[] = ['en', 'si', 'ta']
@@ -67,15 +73,18 @@ function readInitialParams() {
   const profile = params.get('profile') as Profile | null
   const districtParam = params.get('district')
   const compareParam = params.get('compare')
+  const domainParam = params.get('domain')
   const storedDistrict = readStoredHomeDistrict()
   const district = districtParam && districtParam !== 'Sri Lanka' ? districtParam : storedDistrict
   const compareDistrict =
     compareParam && compareParam !== 'Sri Lanka' && districts.includes(compareParam) ? compareParam : 'Kandy'
+  const domainFocus = domainParam && isDomainKey(domainParam) ? domainParam : null
   return {
     page: pageParam && validPages.includes(pageParam as PageParam) ? resolvePage(pageParam) : 'home',
     locale: locale && validLocales.includes(locale) ? locale : 'en',
     district,
     compareDistrict,
+    domainFocus,
     profile: profile && validProfiles.includes(profile) ? profile : 'family',
   }
 }
@@ -104,6 +113,7 @@ function AppContent() {
   const [locale, setLocale] = useState<LocaleCode>(initial.locale)
   const [district, setDistrict] = useState(initial.district)
   const [compareDistrict, setCompareDistrict] = useState(initial.compareDistrict)
+  const [domainFocus, setDomainFocus] = useState<DomainKey | null>(initial.domainFocus)
   const [profile, setProfile] = useState<Profile>(initial.profile)
   const [searchQuery, setSearchQuery] = useState('')
   const previousDistrictRef = useRef(initial.district)
@@ -118,8 +128,11 @@ function AppContent() {
     if (activePage === 'decide') {
       params.set('compare', compareDistrict)
     }
+    if (activePage === 'domains' && domainFocus) {
+      params.set('domain', domainFocus)
+    }
     window.history.replaceState({}, '', `${window.location.pathname}?${params}`)
-  }, [activePage, compareDistrict, district, locale, profile])
+  }, [activePage, compareDistrict, domainFocus, district, locale, profile])
 
   useEffect(() => {
     if (district !== 'Sri Lanka') {
@@ -288,6 +301,7 @@ function AppContent() {
       setLocale={setLocale}
       setProfile={setProfile}
       setSearchQuery={setSearchQuery}
+      setDomainFocus={setDomainFocus}
       preloadPage={preloadPage}
       signIn={auth.signIn}
       signOut={auth.signOut}
@@ -392,6 +406,19 @@ function AppContent() {
             profile={activeProfile}
             setCompareDistrict={setCompareDistrict}
           />
+        ) : null}
+        {activePage === 'domains' ? (
+          <DomainsPage
+            district={activeDistrict}
+            domains={domains}
+            focusedDomain={domainFocus ?? 'food'}
+            locale={activeLocale}
+            onDomainFocusChange={setDomainFocus}
+            profile={activeProfile}
+          />
+        ) : null}
+        {activePage === 'affordability' ? (
+          <AffordabilityPage district={activeDistrict} locale={activeLocale} profile={activeProfile} />
         ) : null}
       </Suspense>
     </Shell>

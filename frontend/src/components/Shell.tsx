@@ -4,8 +4,8 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { LifeAuthUser } from '../auth/AuthContext'
 import { localeOptions, profileLabel, t } from '../i18n'
 import { districts, profiles } from '../lib/format'
-import { resolvePage } from '../lib/pages'
-import type { LocaleCode, PageKey, Profile, SearchResult } from '../types'
+import { navigateFromHref } from '../lib/navigation'
+import type { DomainKey, LocaleCode, PageKey, Profile, SearchResult } from '../types'
 import { BrandMark } from './BrandMark'
 import { ShellSearchCombobox } from './ShellSearchCombobox'
 
@@ -17,24 +17,6 @@ const navItems = [
   { key: 'decide', labelKey: 'decide', icon: Scale },
   { key: 'sources', labelKey: 'trust', icon: ShieldCheck },
 ] as const
-
-function navigateFromHref(href: string, setActivePage: Dispatch<SetStateAction<PageKey>>) {
-  if (/^https?:\/\//i.test(href)) {
-    window.open(href, '_blank', 'noopener,noreferrer')
-    return
-  }
-  try {
-    const url = new URL(href, window.location.origin)
-    const page = url.searchParams.get('page')
-    if (page) {
-      setActivePage(resolvePage(page))
-      return
-    }
-  } catch {
-    // Fall through to default navigation.
-  }
-  setActivePage('home')
-}
 
 export function Shell({
   activePage,
@@ -49,6 +31,7 @@ export function Shell({
   searchResults,
   setActivePage,
   setDistrict,
+  setDomainFocus,
   setLocale,
   setProfile,
   setSearchQuery,
@@ -69,6 +52,7 @@ export function Shell({
   searchResults: SearchResult[]
   setActivePage: Dispatch<SetStateAction<PageKey>>
   setDistrict: Dispatch<SetStateAction<string>>
+  setDomainFocus: Dispatch<SetStateAction<DomainKey | null>>
   setLocale: Dispatch<SetStateAction<LocaleCode>>
   setProfile: Dispatch<SetStateAction<Profile>>
   setSearchQuery: Dispatch<SetStateAction<string>>
@@ -196,7 +180,7 @@ export function Shell({
               onChange={setSearchQuery}
               onSelectResult={(result) => {
                 if (result.href) {
-                  navigateFromHref(result.href, setActivePage)
+                  navigateFromHref(result.href, setActivePage, setDomainFocus)
                 } else {
                   setActivePage('decide')
                 }

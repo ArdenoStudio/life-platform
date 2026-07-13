@@ -503,9 +503,17 @@ describe('Ariva', () => {
     fireEvent.keyDown(search, { key: 'ArrowDown' })
     fireEvent.keyDown(search, { key: 'Enter' })
 
+    expect(await screen.findByRole('heading', { name: 'All domains' })).toBeInTheDocument()
     await waitFor(() => {
       expect(search).toHaveValue('')
     })
+  })
+
+  it('loads affordability desk from page param', async () => {
+    window.history.replaceState({}, '', '/?page=affordability&locale=en')
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Affordability desk' })).toBeInTheDocument()
   })
 
   it('searches the central Ariva API and opens the signals result surface', async () => {

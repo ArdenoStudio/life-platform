@@ -526,4 +526,14 @@ export interface LifePulseResponse {
   unread_count: number
 }
 
-export type PageKey = 'home' | 'cost' | 'atlas' | 'move' | 'decide' | 'intelligence' | 'sources' | 'operator'
+export type PageKey =
+  | 'home'
+  | 'cost'
+  | 'atlas'
+  | 'move'
+  | 'decide'
+  | 'intelligence'
+  | 'sources'
+  | 'operator'
+  | 'domains'
+  | 'affordability'
