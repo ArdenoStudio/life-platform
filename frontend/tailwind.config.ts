@@ -19,7 +19,8 @@ export default {
         panel: '0 18px 50px -30px rgba(17, 19, 15, 0.38)',
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Manrope', 'ui-sans-serif', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
     },
