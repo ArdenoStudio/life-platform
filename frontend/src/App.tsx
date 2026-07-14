@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 
@@ -117,6 +117,10 @@ function AppContent() {
   const [profile, setProfile] = useState<Profile>(initial.profile)
   const [searchQuery, setSearchQuery] = useState('')
   const previousDistrictRef = useRef(initial.district)
+  const hydratedFromAuthRef = useRef(false)
+  const urlHadDistrictRef = useRef(Boolean(new URLSearchParams(window.location.search).get('district')))
+  const urlHadProfileRef = useRef(Boolean(new URLSearchParams(window.location.search).get('profile')))
+  const urlHadLocaleRef = useRef(Boolean(new URLSearchParams(window.location.search).get('locale')))
 
   useEffect(() => {
     const params = new URLSearchParams({
@@ -151,14 +155,34 @@ function AppContent() {
   })
 
   const authProfile = lifePulseQuery.data?.profile
-  const activeDistrict =
-    authProfile?.district && authProfile.district !== 'Sri Lanka' ? authProfile.district : district
-  const activeProfile =
-    authProfile?.profile && validProfiles.includes(authProfile.profile) ? authProfile.profile : profile
-  const activeLocale =
-    authProfile?.default_locale && validLocales.includes(authProfile.default_locale)
-      ? authProfile.default_locale
-      : locale
+
+  // Header controls + explicit deep-link params win. Auth profile only seeds unset URL slots once.
+  useEffect(() => {
+    if (!authProfile || hydratedFromAuthRef.current) return
+    hydratedFromAuthRef.current = true
+    if (
+      !urlHadDistrictRef.current &&
+      authProfile.district &&
+      authProfile.district !== 'Sri Lanka' &&
+      districts.includes(authProfile.district)
+    ) {
+      setDistrict(authProfile.district)
+    }
+    if (!urlHadProfileRef.current && authProfile.profile && validProfiles.includes(authProfile.profile)) {
+      setProfile(authProfile.profile)
+    }
+    if (
+      !urlHadLocaleRef.current &&
+      authProfile.default_locale &&
+      validLocales.includes(authProfile.default_locale)
+    ) {
+      setLocale(authProfile.default_locale)
+    }
+  }, [authProfile])
+
+  const activeDistrict = district
+  const activeProfile = profile
+  const activeLocale = locale
 
   useEffect(() => {
     document.documentElement.lang = activeLocale === 'si' ? 'si' : activeLocale === 'ta' ? 'ta' : 'en'
@@ -175,26 +199,31 @@ function AppContent() {
   const overviewQuery = useQuery({
     queryKey: ['life-overview', activeDistrict, activeProfile],
     queryFn: () => getOverview(activeDistrict, activeProfile),
+    placeholderData: keepPreviousData,
   })
 
   const costQuery = useQuery({
     queryKey: ['life-cost-command', activeDistrict, activeProfile, activeLocale],
     queryFn: () => getCostCommand(activeDistrict, activeProfile, activeLocale),
+    placeholderData: keepPreviousData,
   })
 
   const atlasQuery = useQuery({
     queryKey: ['life-atlas', activeDistrict, activeProfile, activeLocale],
     queryFn: () => getAtlas(activeDistrict, activeProfile, activeLocale),
+    placeholderData: keepPreviousData,
   })
 
   const utilitiesQuery = useQuery({
     queryKey: ['life-utilities', activeDistrict],
     queryFn: () => getUtilities(activeDistrict),
+    placeholderData: keepPreviousData,
   })
 
   const transportQuery = useQuery({
     queryKey: ['life-transport', activeDistrict],
     queryFn: () => getTransport(activeDistrict === 'Sri Lanka' ? 'Colombo' : activeDistrict, 'Colombo'),
+    placeholderData: keepPreviousData,
   })
 
   const retailQuery = useQuery({
@@ -312,10 +341,10 @@ function AppContent() {
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-400/35 bg-amber-500/12 p-4 text-[#fff4d6]">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
-            <p className="font-semibold">Ariva API is not reachable from the browser.</p>
+            <p className="font-semibold">{t(locale, 'apiUnreachable')}</p>
             <p className="mt-1 text-sm leading-6">
-              Start the FastAPI backend or set <code className="rounded border border-border bg-surface px-1 py-0.5">VITE_API_URL</code> to the deployed
-              backend. Ariva is built to recover as soon as the API responds.
+              {t(locale, 'apiUnreachableHint')} (
+              <code className="rounded border border-border bg-surface px-1 py-0.5">VITE_API_URL</code>).
             </p>
           </div>
         </div>

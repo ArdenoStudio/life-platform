@@ -31,15 +31,18 @@ export function PulsePanel({
   children,
   className = '',
   tone = 'glass',
+  ...rest
 }: {
   as?: ElementType
   children: ReactNode
   className?: string
   tone?: PulsePanelTone
-}) {
+} & Record<string, unknown>) {
   const resolvedTone = tone === 'glass' ? 'surface' : tone
   return (
-    <Component className={`rounded-desk border p-4 md:p-5 ${toneClasses[resolvedTone]} ${className}`}>{children}</Component>
+    <Component className={`rounded-desk border p-4 md:p-5 ${toneClasses[resolvedTone]} ${className}`} {...rest}>
+      {children}
+    </Component>
   )
 }
 

@@ -8,6 +8,7 @@ import { PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { domainLabel, profileLabel, t, type I18nKey } from '../i18n'
 import { getAffordability } from '../lib/api'
 import { trackEvent } from '../lib/analytics'
+import { chartAccent, chartGrid, chartTick } from '../lib/chartTheme'
 import { districts, domainMeta, formatCompactLkr, formatLkr, formatMetric } from '../lib/format'
 import type { AffordabilityResponse, DomainKey, DomainSignal, LocaleCode, Profile } from '../types'
 
@@ -132,11 +133,11 @@ export function ComparePage({
           <div className="mt-5 h-72" role="img" aria-label={t(locale, 'compareMonthlyTotal')}>
             <ResponsiveContainer height="100%" width="100%">
               <BarChart data={districtChart} margin={{ left: 8, right: 20, top: 10, bottom: 8 }}>
-                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.12)" />
-                <XAxis dataKey="name" tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
-                <YAxis tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
+                <CartesianGrid vertical={false} stroke={chartGrid} />
+                <XAxis dataKey="name" tick={{ fill: chartTick, fontSize: 12 }} />
+                <YAxis tick={{ fill: chartTick, fontSize: 12 }} />
                 <Tooltip formatter={(value) => formatLkr(Number(value))} />
-                <Bar dataKey="value" fill="#2dd4bf" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill={chartAccent} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

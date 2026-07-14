@@ -5,6 +5,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { DomainPanel } from '../components/DomainPanel'
 import { PageContextBar } from '../components/PageContextBar'
 import { PulseKicker, PulsePanel, pulseInnerCardClass } from '../components/PulsePanel'
+import { t } from '../i18n'
+import { chartGrid, chartTick } from '../lib/chartTheme'
 import { domainMeta, formatMetric, numericMetricRows } from '../lib/format'
 import type { DomainKey, DomainSignal, LocaleCode, Profile } from '../types'
 
@@ -45,18 +47,24 @@ export function DomainsPage({
   if (!active) {
     return (
       <PulsePanel tone="alert">
-        <p>Domain signals will appear when the API responds.</p>
+        <p>{t(locale, 'domainSignalsPending')}</p>
       </PulsePanel>
     )
   }
 
   return (
-    <div className="space-y-5">
-      <PageContextBar district={district} kicker="Domain explorer" locale={locale} profile={profile} title="All domains" />
+    <div className="space-y-5" data-testid="domains-page">
+      <PageContextBar
+        district={district}
+        kicker={t(locale, 'domainExplorer')}
+        locale={locale}
+        profile={profile}
+        title={t(locale, 'allDomains')}
+      />
 
       <div className="grid gap-5 xl:grid-cols-[18rem_1fr]">
         <PulsePanel as="aside" className="xl:sticky xl:top-24 xl:self-start">
-          <PulseKicker>Domains</PulseKicker>
+          <PulseKicker>{t(locale, 'domains')}</PulseKicker>
           <div className="mt-3 space-y-1">
             {domains.map((domain) => {
               const meta = domainMeta[domain.key]
@@ -89,7 +97,7 @@ export function DomainsPage({
             <PulsePanel>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <PulseKicker>Metric spread</PulseKicker>
+                  <PulseKicker>{t(locale, 'metricSpread')}</PulseKicker>
                   <h2 className="mt-1 text-2xl font-semibold text-foreground">{active.label}</h2>
                 </div>
                 <a
@@ -102,28 +110,28 @@ export function DomainsPage({
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </a>
               </div>
-              <div className="mt-5 h-80" role="img" aria-label="Metric spread chart">
+              <div className="mt-5 h-80" role="img" aria-label={t(locale, 'metricSpread')}>
                 {chartData.length ? (
                   <ResponsiveContainer height="100%" width="100%">
                     <BarChart data={chartData} margin={{ left: 10, right: 20, top: 10, bottom: 42 }}>
-                      <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.12)" />
-                      <XAxis dataKey="name" interval={0} tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 11 }} angle={-24} textAnchor="end" />
-                      <YAxis tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
+                      <CartesianGrid vertical={false} stroke={chartGrid} />
+                      <XAxis dataKey="name" interval={0} tick={{ fill: chartTick, fontSize: 11 }} angle={-24} textAnchor="end" />
+                      <YAxis tick={{ fill: chartTick, fontSize: 12 }} />
                       <Tooltip formatter={(value, _name, item) => [`${value} ${item.payload.unit}`.trim(), 'Value']} />
                       <Bar dataKey="value" fill={domainMeta[active.key].accent} radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="grid h-full place-items-center rounded-lg border border-dashed border-border text-sm text-muted">
-                    Numeric metrics are not available for this source yet.
+                    {t(locale, 'numericMetricsUnavailable')}
                   </div>
                 )}
               </div>
             </PulsePanel>
 
             <PulsePanel>
-              <PulseKicker>Source payload</PulseKicker>
-              <h2 className="mt-1 text-2xl font-semibold text-foreground">Top items</h2>
+              <PulseKicker>{t(locale, 'sourcePayload')}</PulseKicker>
+              <h2 className="mt-1 text-2xl font-semibold text-foreground">{t(locale, 'topItems')}</h2>
               <div className="mt-5 divide-y divide-white/10">
                 {active.top_items.length ? (
                   active.top_items.slice(0, 8).map((item, index) => (
@@ -135,7 +143,7 @@ export function DomainsPage({
                     </div>
                   ))
                 ) : (
-                  <p className={`p-4 text-sm text-muted ${pulseInnerCardClass}`}>This adapter has summary signals but no item list yet.</p>
+                  <p className={`p-4 text-sm text-muted ${pulseInnerCardClass}`}>{t(locale, 'noItemListYet')}</p>
                 )}
               </div>
             </PulsePanel>

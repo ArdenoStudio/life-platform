@@ -4,6 +4,7 @@ pull_request_rules:
       - "label=auto-merge"
       - check-success=backend
       - check-success=frontend
+      - check-success=Playwright smoke
     actions:
       queue:
 
@@ -37,3 +38,4 @@ queue_rules:
     merge_conditions:
       - check-success=backend
       - check-success=frontend
+      - check-success=Playwright smoke

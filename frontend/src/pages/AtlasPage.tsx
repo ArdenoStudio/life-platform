@@ -7,6 +7,7 @@ import { PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { SisterSignalCard } from '../components/SisterSignalCard'
 import { SourcePill } from '../components/SourcePill'
 import { domainLabel, t } from '../i18n'
+import { chartAccent, chartTick } from '../lib/chartTheme'
 import { addArivaUtm } from '../lib/deepLink'
 import { districts, domainMeta, formatNumber, formatPercent } from '../lib/format'
 import type { AreaScoreResponse, AtlasResponse, DistrictProfile, DomainSignal, LocaleCode, Profile } from '../types'
@@ -190,8 +191,8 @@ export function AtlasPage({
             <ResponsiveContainer height="100%" width="100%">
               <RadarChart data={radarData}>
                 <PolarGrid stroke="rgba(255,255,255,0.12)" />
-                <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
-                <RadarShape dataKey="score" fill="#2dd4bf" fillOpacity={0.28} stroke="#2dd4bf" strokeWidth={2} />
+                <PolarAngleAxis dataKey="metric" tick={{ fill: chartTick, fontSize: 12 }} />
+                <RadarShape dataKey="score" fill={chartAccent} fillOpacity={0.28} stroke={chartAccent} strokeWidth={2} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -317,37 +318,37 @@ export function AtlasPage({
 
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <PulsePanel>
-          <PulseKicker>District profile</PulseKicker>
+          <PulseKicker>{t(locale, 'districtProfile')}</PulseKicker>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Province</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">{selectedProfile?.province ?? 'National'}</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">{t(locale, 'province')}</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{selectedProfile?.province ?? t(locale, 'national')}</p>
             </div>
             <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Population</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">{t(locale, 'population')}</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{formatNumber(selectedProfile?.population)}</p>
             </div>
             <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Households</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">{t(locale, 'households')}</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{formatNumber(selectedProfile?.households)}</p>
             </div>
             <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Density</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">{t(locale, 'density')}</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{formatNumber(selectedProfile?.density_per_sqkm, 1)}/sqkm</p>
             </div>
             <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">Cooking gas share</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">{t(locale, 'cookingGasShare')}</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{formatPercent(selectedProfile?.cooking_gas_share)}</p>
             </div>
             <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">60+ share</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">{t(locale, 'elderlyShare')}</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{formatPercent(selectedProfile?.elderly_share)}</p>
             </div>
           </div>
         </PulsePanel>
 
         <PulsePanel>
-          <PulseKicker>Score methodology</PulseKicker>
+          <PulseKicker>{t(locale, 'scoreMethodology')}</PulseKicker>
           <div className="mt-4 space-y-3">
             {(atlas?.methodology ?? []).map((item) => (
               <p key={item} className="rounded-lg border border-border bg-elevated p-3 text-sm leading-6 text-muted">

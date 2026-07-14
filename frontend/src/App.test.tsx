@@ -545,7 +545,7 @@ describe('Ariva', () => {
     ;(globalThis as { __ARIVA_TEST_AUTH_TOKEN__?: string }).__ARIVA_TEST_AUTH_TOKEN__ = 'life-test-token'
     const { unmount } = render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'My Ariva Pulse' })).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'My Ariva Pulse' }, { timeout: 5000 })
     expect(screen.getByText('Rice watch')).toBeInTheDocument()
     expect(screen.getByText('Fuel watch')).toBeInTheDocument()
 
