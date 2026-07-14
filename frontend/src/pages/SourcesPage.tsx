@@ -123,7 +123,7 @@ export function SourcesPage({
         <DomainAdapterList items={mvpSisters} locale={locale} />
       </PulsePanel>
 
-      <PulsePanel>
+      <PulsePanel data-testid="trust-source-validation">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-accent" aria-hidden="true" />
           <h2 className="text-xl font-semibold text-foreground">{t(locale, 'sourceValidation')}</h2>
@@ -197,7 +197,7 @@ export function SourcesPage({
       </PulsePanel>
 
       <section className="grid gap-5 xl:grid-cols-[1.12fr_0.88fr]">
-        <PulsePanel>
+        <PulsePanel data-testid="trust-upstream-health">
           <PulseKicker>{t(locale, 'upstreamHealth')}</PulseKicker>
           <div className="mt-4 space-y-3 md:hidden">
             {(data?.domains ?? []).map((domain) => (
@@ -254,7 +254,7 @@ export function SourcesPage({
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <PulsePanel>
+        <PulsePanel data-testid="trust-all-sources">
           <PulseKicker>{t(locale, 'allSources')}</PulseKicker>
           <DomainAdapterList items={otherDomains} locale={locale} />
         </PulsePanel>

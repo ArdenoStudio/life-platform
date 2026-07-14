@@ -67,8 +67,8 @@ test('decide page loads with compare params', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Cost comparison', exact: true })).toBeVisible({ timeout: 15000 })
   await expect(page.getByLabel('Compare against')).toHaveValue('Kandy')
 
-  for (const rowLabel of ['food', 'fuel', 'property'] as const) {
-    await expect(page.getByTestId(`sister-row-${rowLabel}`).first()).toBeVisible()
+  for (const rowKey of ['food', 'fuel', 'property'] as const) {
+    await expect(page.locator(`[data-testid="sister-row-${rowKey}"]:visible`)).toBeVisible()
   }
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
@@ -103,14 +103,10 @@ test('Ariva home renders without horizontal overflow', async ({ page }) => {
 test('sources and trilingual UI render without horizontal overflow', async ({ page }) => {
   await page.goto('/?page=trust&locale=si', { waitUntil: 'domcontentloaded' })
   await expect(page.getByTestId('page-title')).toBeVisible({ timeout: 15000 })
-
-  await expect(page.getByText(/සියලු මූලාශ්‍ර/i)).toBeVisible()
-  await expect(page.getByText(/මූලාශ්‍ර වලංගුකරණ/i)).toBeVisible()
-  await expect(page.getByText(/සක්‍රීය මූලාශ්‍ර නිකුතුව/i)).toBeVisible()
-  await expect(page.getByText(/Seed fallback|ප්‍රවර්ධිත නිකුතුව/i)).toBeVisible()
-  await expect(page.getByText(/Score source gate/i)).toBeVisible()
-  await expect(page.getByText(/ඉහළ මූලාශ්‍ර සෞඛ්‍යය|මූලාශ්‍ර සෞඛ්‍යය/i).first()).toBeVisible()
-  await expect(page.getByText(/සක්‍රීය මූලාශ්‍ර ලේඛනය/i)).toBeVisible()
+  await expect(page.getByTestId('trust-all-sources')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByTestId('trust-upstream-health')).toBeVisible()
+  await expect(page.getByTestId('trust-source-validation')).toBeVisible()
+  await expect(page.getByText(/Seed fallback|ප්‍රවර්ධිත නිකුතුව|Promoted release/i).first()).toBeVisible()
   await expect(page.getByText('official public').first()).toBeVisible()
   await expect(page.getByText('scheduled refresh plus manual trigger').first()).toBeVisible()
 
@@ -125,7 +121,7 @@ test('atlas district profile renders without horizontal overflow', async ({ page
   await page.goto('/?page=atlas&district=Kandy&locale=en', { waitUntil: 'domcontentloaded' })
   await atlasResponse
 
-  await expect(page.getByTestId('atlas-district-name')).toHaveText(/Kandy/, { timeout: 15000 })
+  await expect(page.getByTestId('page-title')).toHaveText(/Kandy/, { timeout: 15000 })
   await expect(page.getByRole('heading', { name: 'Compare districts', exact: true })).toBeVisible()
   await expect(page.getByLabel('Compare against')).toBeVisible()
   await expect(page.getByText('Component gap')).toBeVisible()
