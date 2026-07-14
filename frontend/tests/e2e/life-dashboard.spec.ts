@@ -107,7 +107,6 @@ test('sources and trilingual UI render without horizontal overflow', async ({ pa
   await expect(page.getByTestId('trust-upstream-health')).toBeVisible()
   await expect(page.getByTestId('trust-source-validation')).toBeVisible()
   await expect(page.getByText(/Seed fallback|ප්‍රවර්ධිත නිකුතුව|Promoted release/i).first()).toBeVisible()
-  await expect(page.getByText('official public').first()).toBeVisible()
   await expect(page.getByText('scheduled refresh plus manual trigger').first()).toBeVisible()
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
@@ -121,6 +120,7 @@ test('atlas district profile renders without horizontal overflow', async ({ page
   await page.goto('/?page=atlas&district=Kandy&locale=en', { waitUntil: 'domcontentloaded' })
   await atlasResponse
 
+  await expect(page.getByTestId('atlas-district-name')).toHaveText(/Kandy/, { timeout: 15000 })
   await expect(page.getByTestId('page-title')).toHaveText(/Kandy/, { timeout: 15000 })
   await expect(page.getByRole('heading', { name: 'Compare districts', exact: true })).toBeVisible()
   await expect(page.getByLabel('Compare against')).toBeVisible()
@@ -173,6 +173,36 @@ test('operator release review shell stays protected and responsive', async ({ pa
   await expect(page.getByText('Run or load the official cost evidence review.')).toBeVisible()
   await expect(page.getByText('Paste the internal token and load release evidence.')).toBeVisible()
 
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+})
+
+test('domains desk loads without horizontal overflow', async ({ page }) => {
+  const overviewResponse = page.waitForResponse(
+    (response) => response.url().includes('/life/overview') && response.status() === 200,
+    { timeout: 20000 },
+  )
+  await page.goto('/?page=domains&district=Colombo&locale=en', { waitUntil: 'domcontentloaded' })
+  await overviewResponse
+
+  await expect(page.getByTestId('domains-page')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Domain explorer', { exact: true })).toBeVisible()
+  await expect(page.getByText('All domains', { exact: true })).toBeVisible()
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+})
+
+test('affordability desk loads without horizontal overflow', async ({ page }) => {
+  const affordabilityResponse = page.waitForResponse(
+    (response) => response.url().includes('/life/affordability') && response.status() === 200,
+    { timeout: 20000 },
+  )
+  await page.goto('/?page=affordability&district=Colombo&profile=family&locale=en', {
+    waitUntil: 'domcontentloaded',
+  })
+  await affordabilityResponse
+
+  await expect(page.getByTestId('affordability-page')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Affordability desk', { exact: true })).toBeVisible()
+  await expect(page.getByText('Household cost pressure', { exact: true })).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
 

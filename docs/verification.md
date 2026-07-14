@@ -81,7 +81,7 @@ npx playwright test tests/e2e/life-dashboard.spec.ts -g "Ariva home"
 # Trust tab — registry, validation, release card
 npx playwright test tests/e2e/life-dashboard.spec.ts -g "sources and trilingual"
 
-# Decide — manual URL smoke until dedicated Playwright spec lands (see implementation plan Phase 3)
+# Decide — covered by Playwright smoke (`decide page loads with compare params`)
 # Open http://127.0.0.1:3001/?page=decide&district=Colombo&profile=family
 
 # Manual deep-link spot check (sister platform URLs from overview)

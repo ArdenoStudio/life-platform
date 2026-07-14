@@ -67,9 +67,12 @@ Operators can open `/?page=operator` to review promoted source-data releases. Th
 ## Deployment
 
 - Backend: Fly app from `backend/fly.toml`; run Alembic migrations before the Uvicorn server starts.
-- Frontend: Vercel Vite build from `frontend/vercel.json`; set `VITE_API_URL` to the deployed backend `/api/v1` base.
-- CI: `.github/workflows/ci.yml` runs backend tests, frontend lint, frontend tests, and frontend build.
+- Frontend: Vercel Vite build from `frontend/vercel.json`; set `VITE_API_URL` to the deployed backend `/api/v1` base (e.g. `https://life-platform-backend.fly.dev/api/v1`).
+- CORS: production Fly sets `CORS_ORIGINS` to include `https://life-platform.vercel.app`. Add any Vercel preview origins to the Fly secret/env before testing previews.
+- Secrets on Fly (set outside the repo): `DATABASE_URL`, `LIFE_INTERNAL_TOKEN`, optional Firebase credentials, and override `CORS_ORIGINS` when needed.
+- CI: `.github/workflows/ci.yml` runs backend tests, frontend lint/tests/build, Playwright smoke, and sister deep-link checks.
 - Snapshot refresh: `.github/workflows/snapshot-refresh.yml` can call the deployed Ariva API when `LIFE_API_BASE` is configured as a repository secret.
+- Vercel production deploy: `.github/workflows/vercel-production.yml` needs `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` repository secrets (soft-skips when absent).
 
 ## Public API
 
@@ -77,6 +80,13 @@ Operators can open `/?page=operator` to review promoted source-data releases. Th
 - `GET /api/v1/life/domains`
 - `GET /api/v1/life/search?q=rice`
 - `GET /api/v1/life/affordability?district=Colombo&profile=family`
+- `GET /api/v1/life/cost-command?district=Colombo&profile=family`
+- `GET /api/v1/life/atlas?district=Colombo&profile=family`
+- `GET /api/v1/life/utilities?district=Colombo`
+- `GET /api/v1/life/transport?district=Colombo&profile=family`
+- `GET /api/v1/life/retail/offers?district=Colombo`
+- `GET /api/v1/life/insights?district=Colombo`
+- `GET /api/v1/life/i18n?locale=en`
 - `GET /api/v1/life/trends?domain=food`
 - `GET /api/v1/life/weather-risk?district=Ratnapura`
 - `GET /api/v1/life/pipeline`

@@ -6,15 +6,18 @@ import { MetricTile } from '../components/MetricTile'
 import { PulseInnerCard, PulseKicker, PulsePanel, pulseInnerCardClass, PulseSubtitle, PulseTitle } from '../components/PulsePanel'
 import { SisterSignalCard } from '../components/SisterSignalCard'
 import { TrustStrip } from '../components/TrustStrip'
-import { profileLabel, statusLabel, t } from '../i18n'
+import { profileLabel, statusLabel, t, type I18nKey } from '../i18n'
 import { trackEvent } from '../lib/analytics'
 import { formatMetric, severityTone } from '../lib/format'
 import type { LifeOverviewResponse, LifePulseResponse, LocaleCode, PageKey, Profile, PublicSourceReleaseResponse } from '../types'
 
-const sisterDomainKeys = [
-  { key: 'food' as const, kicker: 'sisterFood' as const },
-  { key: 'fuel' as const, kicker: 'sisterFuel' as const },
-  { key: 'property' as const, kicker: 'sisterShelter' as const },
+const sisterDomainKeys: Array<{
+  key: 'food' | 'fuel' | 'property'
+  kicker: Extract<I18nKey, 'sisterFood' | 'sisterFuel' | 'sisterShelter'>
+}> = [
+  { key: 'food', kicker: 'sisterFood' },
+  { key: 'fuel', kicker: 'sisterFuel' },
+  { key: 'property', kicker: 'sisterShelter' },
 ]
 
 export function TodayPage({
@@ -71,12 +74,14 @@ export function TodayPage({
   }
 
   const survivalIndex = overview.survival_index
-  const degradedCount = overview.domains.filter(
-    (d) => sisterDomainKeys.some((s) => s.key === d.key) && (d.status === 'degraded' || d.status === 'offline'),
-  ).length
+  const sisterDomains =
+    overview.sister_domains?.length > 0
+      ? overview.sister_domains
+      : overview.domains.filter((domain) => sisterDomainKeys.some((sister) => sister.key === domain.key))
+  const degradedCount = sisterDomains.filter((d) => d.status === 'degraded' || d.status === 'offline').length
 
-  const foodDomain = overview.domains.find((d) => d.key === 'food')
-  const fuelDomain = overview.domains.find((d) => d.key === 'fuel')
+  const foodDomain = sisterDomains.find((d) => d.key === 'food') ?? overview.domains.find((d) => d.key === 'food')
+  const fuelDomain = sisterDomains.find((d) => d.key === 'fuel') ?? overview.domains.find((d) => d.key === 'fuel')
 
   return (
     <div className="space-y-6">
@@ -143,7 +148,7 @@ export function TodayPage({
           <p className="mt-2 text-sm text-muted">
             {overview.source_health.healthy} {statusLabel(locale, 'healthy')} · {overview.source_health.degraded}{' '}
             {statusLabel(locale, 'degraded')}
-            {degradedCount > 0 ? ` · ${degradedCount} sister signals` : ''}
+            {degradedCount > 0 ? ` · ${t(locale, 'sisterSignalsSuffix').replace('{count}', String(degradedCount))}` : ''}
           </p>
         </PulsePanel>
       </div>
@@ -151,9 +156,9 @@ export function TodayPage({
       <section>
         <PulseKicker className="mb-4">{t(locale, 'livingSignals')}</PulseKicker>
         <div className="grid gap-3">
-          {sisterDomainKeys.map(({ key, kicker }) => {
-            const domain = overview.domains.find((item) => item.key === key)
-            if (!domain) return null
+          {sisterDomains.map((domain) => {
+            const kicker =
+              sisterDomainKeys.find((item) => item.key === domain.key)?.kicker ?? ('sisterFood' as const)
             return <SisterSignalCard key={domain.key} domain={domain} kickerKey={kicker} locale={locale} variant="glass" />
           })}
         </div>

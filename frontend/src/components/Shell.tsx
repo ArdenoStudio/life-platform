@@ -81,7 +81,7 @@ export function Shell({
   user: LifeAuthUser | null
 }) {
   return (
-    <div className="min-h-screen overflow-x-clip bg-canvas pb-16 md:pb-0">
+    <div className={`min-h-screen overflow-x-clip bg-canvas ${activePage === 'home' ? 'pb-16 md:pb-0' : ''}`}>
       <header className="desk-shell">
         <div className="mx-auto w-full max-w-[1480px] px-4 py-3 lg:px-6">
           <div className="flex flex-col gap-3">
@@ -101,7 +101,7 @@ export function Shell({
                   <span className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent">
                     {t(locale, 'livingAtlas')}
                   </span>
-                  <span className="mt-0.5 block text-[0.6rem] font-medium text-subtle">by Ardeno Studio</span>
+                  <span className="mt-0.5 block text-[0.6rem] font-medium text-subtle">{t(locale, 'byArdenoStudio')}</span>
                 </span>
               </button>
 

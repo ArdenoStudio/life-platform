@@ -8,6 +8,7 @@ import { PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { SourcePill } from '../components/SourcePill'
 import { sourceTypeLabel, t, type I18nKey } from '../i18n'
 import { trackEvent } from '../lib/analytics'
+import { chartAccent, chartGrid, chartTick } from '../lib/chartTheme'
 import { domainMeta, formatLkrLocale, sourceTypeTone } from '../lib/format'
 import type { CostCommandResponse, DomainKey, LocaleCode, PageKey, Profile, TransportResponse, UtilitiesResponse } from '../types'
 
@@ -120,15 +121,15 @@ export function CostOSPage({
               <AreaChart data={chartData} margin={{ left: 8, right: 20, top: 10, bottom: 40 }}>
                 <defs>
                   <linearGradient id="costFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#c53a25" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#c53a25" stopOpacity={0.04} />
+                    <stop offset="5%" stopColor={chartAccent} stopOpacity={0.45} />
+                    <stop offset="95%" stopColor={chartAccent} stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.12)" />
-                <XAxis dataKey="name" interval={0} tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 11 }} angle={-20} textAnchor="end" />
-                <YAxis tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
+                <CartesianGrid vertical={false} stroke={chartGrid} />
+                <XAxis dataKey="name" interval={0} tick={{ fill: chartTick, fontSize: 11 }} angle={-20} textAnchor="end" />
+                <YAxis tick={{ fill: chartTick, fontSize: 12 }} />
                 <Tooltip formatter={(value) => formatLkrLocale(Number(value), localeTag(locale))} />
-                <Area dataKey="cumulative" fill="url(#costFill)" stroke="#c53a25" strokeWidth={2} type="monotone" />
+                <Area dataKey="cumulative" fill="url(#costFill)" stroke={chartAccent} strokeWidth={2} type="monotone" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
