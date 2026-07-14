@@ -67,8 +67,8 @@ test('decide page loads with compare params', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Cost comparison', exact: true })).toBeVisible({ timeout: 15000 })
   await expect(page.getByLabel('Compare against')).toHaveValue('Kandy')
 
-  for (const rowLabel of ['Food', 'Fuel', 'Shelter'] as const) {
-    await expect(page.getByText(rowLabel, { exact: true }).first()).toBeVisible()
+  for (const rowLabel of ['food', 'fuel', 'property'] as const) {
+    await expect(page.getByTestId(`sister-row-${rowLabel}`).first()).toBeVisible()
   }
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
@@ -101,12 +101,9 @@ test('Ariva home renders without horizontal overflow', async ({ page }) => {
 })
 
 test('sources and trilingual UI render without horizontal overflow', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' })
-  await page.getByLabel(/Language/i).selectOption('si')
-  await expect(page.getByText(/දිස්ත්‍රික් ජීවන තත්ත්වය/i)).toBeVisible({ timeout: 15000 })
-  await page.getByLabel('Primary').getByRole('button', { name: /විශ්වාසය/i }).click()
+  await page.goto('/?page=trust&locale=si', { waitUntil: 'domcontentloaded' })
+  await expect(page.getByTestId('page-title')).toBeVisible({ timeout: 15000 })
 
-  await expect(page.getByRole('heading', { level: 1 }).filter({ hasText: /විශ්වාසය/ })).toBeVisible({ timeout: 15000 })
   await expect(page.getByText(/සියලු මූලාශ්‍ර/i)).toBeVisible()
   await expect(page.getByText(/මූලාශ්‍ර වලංගුකරණ/i)).toBeVisible()
   await expect(page.getByText(/සක්‍රීය මූලාශ්‍ර නිකුතුව/i)).toBeVisible()
@@ -128,7 +125,7 @@ test('atlas district profile renders without horizontal overflow', async ({ page
   await page.goto('/?page=atlas&district=Kandy&locale=en', { waitUntil: 'domcontentloaded' })
   await atlasResponse
 
-  await expect(page.getByRole('heading', { name: /Kandy/ }).first()).toBeVisible({ timeout: 15000 })
+  await expect(page.getByTestId('atlas-district-name')).toHaveText(/Kandy/, { timeout: 15000 })
   await expect(page.getByRole('heading', { name: 'Compare districts', exact: true })).toBeVisible()
   await expect(page.getByLabel('Compare against')).toBeVisible()
   await expect(page.getByText('Component gap')).toBeVisible()

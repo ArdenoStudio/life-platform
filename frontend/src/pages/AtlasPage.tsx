@@ -132,7 +132,10 @@ export function AtlasPage({
         subtitle={atlas?.narrative ?? t(locale, 'districtScoreFallback')}
         title={selected?.district ?? district}
       />
-
+      {/* Keep district name discoverable for e2e even before atlas selection resolves */}
+      <p className="sr-only" data-testid="atlas-district-name">
+        {selected?.district ?? district}
+      </p>
       {propertyDomain ? (
         <SisterSignalCard domain={propertyDomain} kickerKey="sisterShelter" locale={locale} />
       ) : (

@@ -20,7 +20,7 @@ export function PageContextBar({
   return (
     <header className="space-y-1 border-b border-border pb-4">
       <PulseKicker>{kicker}</PulseKicker>
-      <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl" data-testid="page-title">{title}</h1>
       <PulseSubtitle>
         {district} · {profileLabel(locale, profile)}
         {subtitle ? ` · ${subtitle}` : ''}

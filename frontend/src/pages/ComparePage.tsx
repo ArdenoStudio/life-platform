@@ -151,7 +151,7 @@ export function ComparePage({
 
         <div className="mt-5 space-y-3 md:hidden">
           {sisterRows.map((row) => (
-            <article key={row.key} className="rounded-lg border border-border bg-elevated p-4">
+            <article key={row.key} className="rounded-lg border border-border bg-elevated p-4" data-testid={`sister-row-${row.key}`}>
               <p className="font-semibold text-foreground">{t(locale, row.kicker)}</p>
               <p className="mt-1 text-xs text-muted">
                 {row.topMetric?.label ?? domainLabel(locale, row.key, row.domain?.label ?? row.key)}
@@ -198,7 +198,7 @@ export function ComparePage({
             </thead>
             <tbody className="divide-y divide-white/10">
               {sisterRows.map((row) => (
-                <tr key={row.key}>
+                <tr key={row.key} data-testid={`sister-row-${row.key}`}>
                   <td className="py-3 pr-4">
                     <p className="font-semibold text-foreground">{t(locale, row.kicker)}</p>
                     <p className="mt-1 text-xs text-muted">
