@@ -89,14 +89,14 @@ export function ComparePage({
         <label className="mt-4 grid gap-2 text-sm font-semibold text-foreground">
           {t(locale, 'compareAgainst')}
           <select
-            className="h-11 rounded-lg border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-gold/50"
+            className="h-11 rounded-lg border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
             onChange={(event) => setCompareDistrict(event.target.value)}
             value={compareDistrict}
           >
             {districts
               .filter((item) => item !== district)
               .map((item) => (
-                <option key={item} className="text-ink">
+                <option key={item} className="text-foreground">
                   {item}
                 </option>
               ))}
@@ -136,7 +136,7 @@ export function ComparePage({
                 <XAxis dataKey="name" tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
                 <YAxis tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
                 <Tooltip formatter={(value) => formatLkr(Number(value))} />
-                <Bar dataKey="value" fill="#d5aa41" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="#2dd4bf" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

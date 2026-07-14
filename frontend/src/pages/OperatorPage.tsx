@@ -3,7 +3,7 @@ import { Activity, Archive, DatabaseZap, FileText, GitBranch, KeyRound, RefreshC
 import { useState } from 'react'
 
 import { PageContextBar } from '../components/PageContextBar'
-import { paperStatusTone, PulseKicker, PulsePanel } from '../components/PulsePanel'
+import { glassStatusTone, PulseKicker, PulsePanel } from '../components/PulsePanel'
 import { t } from '../i18n'
 import {
   addSourceDataReleaseNote,
@@ -18,14 +18,14 @@ import type { LocaleCode, SourceDataReleaseSummary, SourceImportArtifactSummary 
 const OFFICIAL_COST_RUN_KEY = 'official-cost-direct-run'
 
 function releaseStatusTone(status: SourceDataReleaseSummary['status']) {
-  if (status === 'promoted') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (status === 'superseded') return 'border-sky-200 bg-sky-50 text-sky-800'
-  if (status === 'rolled_back') return 'border-amber-200 bg-amber-50 text-amber-800'
-  return 'border-rose-200 bg-rose-50 text-rose-800'
+  if (status === 'promoted') return 'border-positive/40 bg-positive/10 text-positive'
+  if (status === 'superseded') return 'border-vehicle/40 bg-vehicle/10 text-vehicle'
+  if (status === 'rolled_back') return 'border-warning/40 bg-warning/10 text-warning'
+  return 'border-negative/40 bg-negative/10 text-negative'
 }
 
 function checkTone(status: 'pass' | 'watch' | 'fail') {
-  return paperStatusTone(status)
+  return glassStatusTone(status)
 }
 
 function errorMessage(error: unknown) {
@@ -175,29 +175,29 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
       </PulsePanel>
 
       {releases.error ? (
-        <PulsePanel className="border-rose-200 bg-rose-50 text-rose-900">
+        <PulsePanel className="border-negative/40 bg-negative/10 text-negative">
           <p className="font-semibold">Internal review request failed.</p>
           <p className="mt-1 text-sm">{errorMessage(releases.error)}</p>
         </PulsePanel>
       ) : null}
 
       {officialCostError ? (
-        <PulsePanel className="border-rose-200 bg-rose-50 text-rose-900">
+        <PulsePanel className="border-negative/40 bg-negative/10 text-negative">
           <p className="font-semibold">Official cost evidence request failed.</p>
           <p className="mt-1 text-sm">{errorMessage(officialCostError)}</p>
         </PulsePanel>
       ) : null}
 
       {message ? (
-        <PulsePanel className="border-emerald-200 bg-emerald-50 text-emerald-900">
+        <PulsePanel className="border-positive/40 bg-positive/10 text-positive">
           <p className="font-semibold">{message}</p>
         </PulsePanel>
       ) : null}
 
-      <PulsePanel tone="paper">
+      <PulsePanel>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2 text-emerald-800">
+            <div className="flex items-center gap-2 text-positive">
               <DatabaseZap className="h-5 w-5" aria-hidden="true" />
               <h2 className="text-xl font-semibold">Official cost evidence</h2>
             </div>
@@ -207,7 +207,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
           </div>
           <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-3">
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-positive/40 bg-positive/10 px-3 text-sm font-bold text-positive hover:bg-positive/20 disabled:cursor-not-allowed disabled:opacity-45"
               disabled={!canReview || pending}
               onClick={() => officialCostMutation.mutate(false)}
               type="button"
@@ -216,7 +216,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               Run reviewed contract
             </button>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-bold text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-vehicle/40 bg-vehicle/10 px-3 text-sm font-bold text-vehicle hover:bg-vehicle/20 disabled:cursor-not-allowed disabled:opacity-45"
               disabled={!canReview || pending}
               onClick={() => officialCostMutation.mutate(true)}
               type="button"
@@ -225,7 +225,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               Run live source check
             </button>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold text-ink hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold text-foreground hover:bg-elevated disabled:cursor-not-allowed disabled:opacity-45"
               disabled={!canReview || officialCostArtifacts.isFetching}
               onClick={() => void officialCostArtifacts.refetch()}
               type="button"
@@ -242,33 +242,33 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${checkTone(currentArtifact.status)}`}>
                 {currentArtifact.status}
               </span>
-              <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-muted">
+              <span className="rounded-md border border-border bg-elevated px-2 py-1 text-xs font-semibold text-muted">
                 {currentArtifact.mode.replace('_', ' ')}
               </span>
-              <span className="break-all text-sm font-semibold text-ink">{currentArtifact.run_key}</span>
+              <span className="break-all text-sm font-semibold text-foreground">{currentArtifact.run_key}</span>
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-4">
-              <div className="rounded-lg border border-line bg-white/75 p-3">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Observed</dt>
-                <dd className="mt-1 text-ink">{formatDate(currentArtifact.observed_at)}</dd>
+              <div className="rounded-lg border border-border bg-elevated p-3">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">Observed</dt>
+                <dd className="mt-1 text-foreground">{formatDate(currentArtifact.observed_at)}</dd>
               </div>
-              <div className="rounded-lg border border-line bg-white/75 p-3">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Rows</dt>
-                <dd className="mt-1 text-ink">{currentArtifact.rows_imported}</dd>
+              <div className="rounded-lg border border-border bg-elevated p-3">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">Rows</dt>
+                <dd className="mt-1 text-foreground">{currentArtifact.rows_imported}</dd>
               </div>
-              <div className="rounded-lg border border-line bg-white/75 p-3">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Records</dt>
-                <dd className="mt-1 text-ink">{currentArtifact.normalized_record_count}</dd>
+              <div className="rounded-lg border border-border bg-elevated p-3">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">Records</dt>
+                <dd className="mt-1 text-foreground">{currentArtifact.normalized_record_count}</dd>
               </div>
-              <div className="rounded-lg border border-line bg-white/75 p-3">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Scoring</dt>
-                <dd className="mt-1 text-ink">{currentArtifact.accepted_for_scoring ? 'accepted' : 'review only'}</dd>
+              <div className="rounded-lg border border-border bg-elevated p-3">
+                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">Scoring</dt>
+                <dd className="mt-1 text-foreground">{currentArtifact.accepted_for_scoring ? 'accepted' : 'review only'}</dd>
               </div>
             </dl>
 
             <div className="flex flex-wrap gap-1.5">
               {currentArtifact.source_keys.map((key) => (
-                <span key={key} className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-muted">
+                <span key={key} className="rounded-md border border-border bg-elevated px-2 py-1 text-xs font-semibold text-muted">
                   {key}
                 </span>
               ))}
@@ -286,10 +286,10 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
 
             {currentArtifact.normalized_records.length > 0 ? (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Sample normalized records</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">Sample normalized records</p>
                 <ul className="mt-2 grid gap-2 md:grid-cols-2">
                   {currentArtifact.normalized_records.slice(0, 4).map((record, index) => (
-                    <li key={`${currentArtifact.id}-record-${index}`} className="rounded-lg border border-line bg-white/75 p-3 text-sm text-ink">
+                    <li key={`${currentArtifact.id}-record-${index}`} className="rounded-lg border border-border bg-elevated p-3 text-sm text-foreground">
                       {evidenceLabel(record)}
                     </li>
                   ))}
@@ -298,35 +298,35 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
             ) : null}
           </div>
         ) : (
-          <p className="mt-4 rounded-lg border border-line bg-white/75 p-4 text-sm text-muted">
+          <p className="mt-4 rounded-lg border border-border bg-elevated p-4 text-sm text-muted">
             {officialCostArtifacts.isFetched ? 'No official cost evidence artifacts yet.' : 'Run or load the official cost evidence review.'}
           </p>
         )}
       </PulsePanel>
 
       <section className="grid gap-5 xl:grid-cols-[0.86fr_1.14fr]">
-        <PulsePanel tone="paper">
-          <div className="flex items-center gap-2 text-emerald-800">
+        <PulsePanel>
+          <div className="flex items-center gap-2 text-positive">
             <GitBranch className="h-5 w-5" aria-hidden="true" />
             <h2 className="text-xl font-semibold">Active release</h2>
           </div>
           {activeRelease ? (
             <div className="mt-4 space-y-4">
-              <div className="rounded-lg border border-line bg-white/75 p-4">
+              <div className="rounded-lg border border-border bg-elevated p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${releaseStatusTone(activeRelease.status)}`}>
                     {activeRelease.status.replace('_', ' ')}
                   </span>
-                  <span className="break-all text-sm font-semibold text-ink">{activeRelease.release_key}</span>
+                  <span className="break-all text-sm font-semibold text-foreground">{activeRelease.release_key}</span>
                 </div>
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Observed</dt>
-                    <dd className="mt-1 text-ink">{formatDate(activeRelease.observed_at)}</dd>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">Observed</dt>
+                    <dd className="mt-1 text-foreground">{formatDate(activeRelease.observed_at)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{t(locale, 'snapshotCounts')}</dt>
-                    <dd className="mt-1 text-ink">
+                    <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">{t(locale, 'snapshotCounts')}</dt>
+                    <dd className="mt-1 text-foreground">
                       {activeRelease.district_profile_snapshot_count} districts / {activeRelease.weather_risk_snapshot_count} weather /{' '}
                       {activeRelease.area_score_snapshot_count} scores
                     </dd>
@@ -335,9 +335,9 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               </div>
 
               <label className="block" htmlFor="operator-note">
-                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{t(locale, 'operatorNote')}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-subtle">{t(locale, 'operatorNote')}</span>
                 <textarea
-                  className="mt-2 min-h-28 w-full rounded-lg border border-line bg-white/85 p-3 text-sm text-ink outline-none focus:border-emerald-300"
+                  className="mt-2 min-h-28 w-full rounded-lg border border-border bg-elevated p-3 text-sm text-foreground outline-none focus:border-positive/40"
                   id="operator-note"
                   onChange={(event) => setNote(event.target.value)}
                   placeholder="Record review evidence before note or rollback actions."
@@ -347,7 +347,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
 
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-positive/40 bg-positive/10 px-3 text-sm font-bold text-positive hover:bg-positive/20 disabled:cursor-not-allowed disabled:opacity-45"
                   disabled={!canWrite}
                   onClick={() => noteMutation.mutate(activeRelease.release_key)}
                   type="button"
@@ -356,7 +356,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
                   Add review note
                 </button>
                 <button
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-sm font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 text-sm font-bold text-warning hover:bg-warning/20 disabled:cursor-not-allowed disabled:opacity-45"
                   disabled={!canWrite || activeRelease.status !== 'promoted'}
                   onClick={() => rollbackMutation.mutate(activeRelease.release_key)}
                   type="button"
@@ -367,20 +367,20 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
               </div>
             </div>
           ) : (
-            <p className="mt-4 rounded-lg border border-line bg-white/75 p-4 text-sm text-muted">
+            <p className="mt-4 rounded-lg border border-border bg-elevated p-4 text-sm text-muted">
               {canReview && !releases.isFetching ? t(locale, 'noReleases') : 'Paste the internal token and load release evidence.'}
             </p>
           )}
         </PulsePanel>
 
-        <PulsePanel tone="paper">
-          <div className="flex items-center gap-2 text-emerald-800">
+        <PulsePanel>
+          <div className="flex items-center gap-2 text-positive">
             <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             <h2 className="text-xl font-semibold">{t(locale, 'releaseEvidence')}</h2>
           </div>
           <div className="mt-4 space-y-3">
             {items.map((release) => (
-              <article key={release.release_key} className="rounded-lg border border-line bg-white/75 p-4">
+              <article key={release.release_key} className="rounded-lg border border-border bg-elevated p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -388,12 +388,12 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
                         {release.status.replace('_', ' ')}
                       </span>
                       {release.release_key === data?.active_release_key ? (
-                        <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">
+                        <span className="rounded-md border border-positive/40 bg-positive/10 px-2 py-1 text-xs font-semibold text-positive">
                           active
                         </span>
                       ) : null}
                     </div>
-                    <h3 className="mt-2 break-all font-semibold text-ink">{release.release_key}</h3>
+                    <h3 className="mt-2 break-all font-semibold text-foreground">{release.release_key}</h3>
                     <p className="mt-1 text-xs text-muted">{formatDate(release.observed_at)}</p>
                   </div>
                   <dl className="grid shrink-0 gap-2 text-right text-xs text-muted">
@@ -409,12 +409,12 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {release.source_keys.slice(0, 8).map((key) => (
-                    <span key={key} className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-muted">
+                    <span key={key} className="rounded-md border border-border bg-surface px-2 py-1 text-xs font-semibold text-muted">
                       {key}
                     </span>
                   ))}
                   {release.source_keys.length > 8 ? (
-                    <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-muted">
+                    <span className="rounded-md border border-border bg-surface px-2 py-1 text-xs font-semibold text-muted">
                       +{release.source_keys.length - 8}
                     </span>
                   ) : null}
@@ -430,7 +430,7 @@ export function OperatorPage({ locale }: { locale: LocaleCode }) {
                 </div>
               </article>
             ))}
-            {items.length === 0 && releases.isFetched ? <p className="rounded-lg border border-line bg-white/75 p-4 text-sm text-muted">{t(locale, 'noReleases')}</p> : null}
+            {items.length === 0 && releases.isFetched ? <p className="rounded-lg border border-border bg-elevated p-4 text-sm text-muted">{t(locale, 'noReleases')}</p> : null}
           </div>
         </PulsePanel>
       </section>

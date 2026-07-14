@@ -136,7 +136,7 @@ export function AtlasPage({
       {propertyDomain ? (
         <SisterSignalCard domain={propertyDomain} kickerKey="sisterShelter" locale={locale} />
       ) : (
-        <PulsePanel tone="paper">
+        <PulsePanel>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${domainMeta.property.bg}`} style={{ color: domainMeta.property.accent }}>
@@ -188,7 +188,7 @@ export function AtlasPage({
               <RadarChart data={radarData}>
                 <PolarGrid stroke="rgba(255,255,255,0.12)" />
                 <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(247,240,226,0.72)', fontSize: 12 }} />
-                <RadarShape dataKey="score" fill="#d5aa41" fillOpacity={0.28} stroke="#d5aa41" strokeWidth={2} />
+                <RadarShape dataKey="score" fill="#2dd4bf" fillOpacity={0.28} stroke="#2dd4bf" strokeWidth={2} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -254,11 +254,11 @@ export function AtlasPage({
                       <span className="shrink-0 font-semibold text-muted">{gap}</span>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      <div className="h-2 overflow-hidden rounded-full bg-stone-200">
-                        <div className="h-full rounded-full bg-leaf" style={{ width: `${component.score}%` }} />
+                      <div className="h-2 overflow-hidden rounded-full bg-border">
+                        <div className="h-full rounded-full bg-accent" style={{ width: `${component.score}%` }} />
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-stone-200">
-                        <div className="h-full rounded-full bg-steel" style={{ width: `${other?.score ?? 0}%` }} />
+                      <div className="h-2 overflow-hidden rounded-full bg-border">
+                        <div className="h-full rounded-full bg-accent" style={{ width: `${other?.score ?? 0}%` }} />
                       </div>
                     </div>
                   </div>
@@ -303,8 +303,8 @@ export function AtlasPage({
                   <span className="font-semibold text-foreground">{component.label}</span>
                   <span className="text-muted">{component.value}</span>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-200">
-                  <div className="h-full rounded-full bg-leaf" style={{ width: `${component.score}%` }} />
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-border">
+                  <div className="h-full rounded-full bg-accent" style={{ width: `${component.score}%` }} />
                 </div>
               </div>
             ))}
