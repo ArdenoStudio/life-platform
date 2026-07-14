@@ -40,7 +40,7 @@ function DomainAdapterList({ items, locale }: { items: DomainSignal[]; locale: L
             rel="noreferrer"
             target="_blank"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10" style={{ color: meta.accent }}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-elevated" style={{ color: meta.accent }}>
               <Icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <span className="min-w-0">

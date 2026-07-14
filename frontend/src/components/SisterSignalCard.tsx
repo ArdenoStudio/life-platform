@@ -1,8 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
+
 import { domainLabel, t, type I18nKey } from '../i18n'
+import { getTrends } from '../lib/api'
 import { domainMeta, formatMetric } from '../lib/format'
 import type { Confidence, DomainSignal, LocaleCode, SourceType } from '../types'
 import { DeepLinkButton } from './DeepLinkButton'
 import { FreshnessLabel } from './FreshnessLabel'
+import { MiniSparkline } from './MiniSparkline'
 import { SourceClassPill } from './SourceClassPill'
 import { StatusBadge } from './StatusBadge'
 
@@ -31,6 +35,11 @@ export function SisterSignalCard({
   const confidence: Confidence = primarySource?.confidence ?? 'medium'
   const topMetric = domain.metrics[0]
   const accentClass = rowAccentClass[domain.key] ?? ''
+  const trends = useQuery({
+    queryKey: ['life-trends', domain.key],
+    queryFn: () => getTrends(domain.key, 30),
+    staleTime: 60_000,
+  })
 
   return (
     <article className={`desk-signal-row ${accentClass}`}>
@@ -52,14 +61,17 @@ export function SisterSignalCard({
           </div>
         </div>
 
-        {topMetric ? (
-          <div className="shrink-0 text-right">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{topMetric.label}</p>
-            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">
-              {formatMetric(topMetric.value, topMetric.unit)}
-            </p>
-          </div>
-        ) : null}
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {topMetric ? (
+            <div className="text-right">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{topMetric.label}</p>
+              <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">
+                {formatMetric(topMetric.value, topMetric.unit)}
+              </p>
+            </div>
+          ) : null}
+          <MiniSparkline color={meta.accent} points={trends.data?.points ?? []} />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">

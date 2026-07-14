@@ -66,7 +66,7 @@ export function DomainsPage({
                 <button
                   key={domain.key}
                   className={`flex w-full min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
-                    activeItem ? 'border border-accent/40 bg-accent/15 text-accent' : 'text-foreground hover:bg-white/8'
+                    activeItem ? 'border border-accent/40 bg-accent/15 text-accent' : 'text-foreground hover:bg-elevated'
                   }`}
                   onClick={() => onDomainFocusChange?.(domain.key)}
                   type="button"

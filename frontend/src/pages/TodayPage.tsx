@@ -112,6 +112,20 @@ export function TodayPage({
             </button>
             <button
               className="inline-flex min-h-9 items-center rounded-desk border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-elevated"
+              onClick={() => setActivePage('affordability')}
+              type="button"
+            >
+              {t(locale, 'affordability')}
+            </button>
+            <button
+              className="inline-flex min-h-9 items-center rounded-desk border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-elevated"
+              onClick={() => setActivePage('domains')}
+              type="button"
+            >
+              {t(locale, 'domains')}
+            </button>
+            <button
+              className="inline-flex min-h-9 items-center rounded-desk border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-elevated"
               onClick={() => setActivePage('sources')}
               type="button"
             >
@@ -245,19 +259,19 @@ export function TodayPage({
       <div className="desk-mobile-bar" role="complementary" aria-label="Quick metrics">
         <div className="desk-mobile-bar__item">
           <span className="desk-mobile-bar__value">{survivalIndex.index_score != null ? Math.round(survivalIndex.index_score) : '—'}</span>
-          <span>Cost of Life</span>
+          <span>{t(locale, 'costOfLife')}</span>
         </div>
         <div className="desk-mobile-bar__item">
           <span className="desk-mobile-bar__value">
             {foodDomain?.metrics[0] ? formatMetric(foodDomain.metrics[0].value, foodDomain.metrics[0].unit).split(' ')[0] : '—'}
           </span>
-          <span>Food</span>
+          <span>{t(locale, 'sisterFood')}</span>
         </div>
         <div className="desk-mobile-bar__item">
           <span className="desk-mobile-bar__value">
             {fuelDomain?.metrics[0] ? formatMetric(fuelDomain.metrics[0].value, fuelDomain.metrics[0].unit).split(' ')[0] : '—'}
           </span>
-          <span>Fuel</span>
+          <span>{t(locale, 'sisterFuel')}</span>
         </div>
       </div>
     </div>

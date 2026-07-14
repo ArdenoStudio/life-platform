@@ -94,7 +94,7 @@ export function ShellSearchCombobox({
                   role="option"
                   type="button"
                 >
-                  <span className="block text-sm font-semibold text-ink">{result.label}</span>
+                  <span className="block text-sm font-semibold text-foreground">{result.label}</span>
                   <span className="block truncate text-xs text-muted">{result.description}</span>
                 </button>
               </li>

@@ -5,9 +5,11 @@ FoodLK, Octane, PropertyLK, and AutoLens.
 
 ## Shape
 
-- `backend/` - FastAPI API, domain adapters, central snapshot schema, affordability engine.
-- `frontend/` - Vite React dashboard for the public Ariva UI.
-- `.github/workflows/` - CI and snapshot refresh automation.
+- `backend/` - FastAPI API, domain adapters, central snapshot schema, Cost of Life (45/20/35) affordability engine.
+- `frontend/` - Vite React **Ardeno Command Desk** UI (true-black + teal): Today, Cost, Places, Move, Decide, Signals, Trust, Domains, Affordability.
+- `.github/workflows/` - CI, Vercel production deploy (needs secrets), and snapshot refresh automation.
+
+Visual direction: PropertyLK-grade black canvas, Octane-style pill nav + mobile sticky metrics, FoodLK-style dominant Cost of Life score, JetBrains Mono tabular nums.
 
 ## Backend
 

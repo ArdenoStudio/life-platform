@@ -13,24 +13,40 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Require Vercel credentials
+        id: creds
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "${{ secrets.VERCEL_ORG_ID }}" ] || [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Vercel secrets missing — skipping deploy. Add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID to enable."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.creds.outputs.skip != 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.creds.outputs.skip != 'true'
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Vercel CLI
+        if: steps.creds.outputs.skip != 'true'
         run: npm install -g vercel@latest
 
       - name: Pull Vercel environment
+        if: steps.creds.outputs.skip != 'true'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build project
+        if: steps.creds.outputs.skip != 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VITE_API_URL: https://life-platform-backend.fly.dev/api/v1
 
       - name: Deploy to production
+        if: steps.creds.outputs.skip != 'true'
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

@@ -1,4 +1,17 @@
-import { Bell, Globe2, LayoutDashboard, LogIn, LogOut, Map, Route, Scale, ShieldCheck, WalletCards } from 'lucide-react'
+import {
+  Activity,
+  Bell,
+  Globe2,
+  LayoutDashboard,
+  Layers3,
+  LogIn,
+  LogOut,
+  Map,
+  Route,
+  Scale,
+  ShieldCheck,
+  WalletCards,
+} from 'lucide-react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 
 import type { LifeAuthUser } from '../auth/AuthContext'
@@ -9,13 +22,19 @@ import type { DomainKey, LocaleCode, PageKey, Profile, SearchResult } from '../t
 import { BrandMark } from './BrandMark'
 import { ShellSearchCombobox } from './ShellSearchCombobox'
 
-const navItems = [
+const primaryNav = [
   { key: 'home', labelKey: 'today', icon: LayoutDashboard },
   { key: 'cost', labelKey: 'cost', icon: WalletCards },
   { key: 'atlas', labelKey: 'places', icon: Map },
   { key: 'move', labelKey: 'move', icon: Route },
   { key: 'decide', labelKey: 'decide', icon: Scale },
+  { key: 'intelligence', labelKey: 'intelligence', icon: Activity },
   { key: 'sources', labelKey: 'trust', icon: ShieldCheck },
+] as const
+
+const secondaryNav = [
+  { key: 'domains', labelKey: 'domains', icon: Layers3 },
+  { key: 'affordability', labelKey: 'affordability', icon: WalletCards },
 ] as const
 
 export function Shell({
@@ -87,7 +106,7 @@ export function Shell({
               </button>
 
               <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto lg:flex-wrap lg:justify-center lg:overflow-visible" aria-label="Primary">
-                {navItems.map((item) => {
+                {primaryNav.map((item) => {
                   const Icon = item.icon
                   const active = activePage === item.key
                   return (
@@ -180,21 +199,45 @@ export function Shell({
               </div>
             </div>
 
-            <ShellSearchCombobox
-              label={t(locale, 'search')}
-              onChange={setSearchQuery}
-              onSelectResult={(result) => {
-                if (result.href) {
-                  navigateFromHref(result.href, setActivePage, setDomainFocus)
-                } else {
-                  setActivePage('decide')
-                }
-                setSearchQuery('')
-              }}
-              placeholder={t(locale, 'search')}
-              results={searchResults}
-              value={searchQuery}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <nav className="flex gap-1 overflow-x-auto" aria-label="Secondary">
+                {secondaryNav.map((item) => {
+                  const Icon = item.icon
+                  const active = activePage === item.key
+                  return (
+                    <button
+                      key={item.key}
+                      aria-current={active ? 'page' : undefined}
+                      className={`desk-nav-pill min-h-8 border border-border ${active ? 'active' : ''}`}
+                      onClick={() => setActivePage(item.key)}
+                      onFocus={() => preloadPage?.(item.key)}
+                      onMouseEnter={() => preloadPage?.(item.key)}
+                      type="button"
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t(locale, item.labelKey)}
+                    </button>
+                  )
+                })}
+              </nav>
+              <div className="min-w-[12rem] flex-1">
+                <ShellSearchCombobox
+                  label={t(locale, 'search')}
+                  onChange={setSearchQuery}
+                  onSelectResult={(result) => {
+                    if (result.href) {
+                      navigateFromHref(result.href, setActivePage, setDomainFocus)
+                    } else {
+                      setActivePage('decide')
+                    }
+                    setSearchQuery('')
+                  }}
+                  placeholder={t(locale, 'search')}
+                  results={searchResults}
+                  value={searchQuery}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </header>
